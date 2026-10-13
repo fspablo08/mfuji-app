@@ -20,10 +20,10 @@ Na aba **Domains**, adicione por exemplo `sistema.mfuji.com.br`. O domínio prec
 ## Publicação manual (alternativa)
 No Worker **mfuji**, **New deployment** e arraste o arquivo `public/index.html`.
 
-## O que já funciona e o que ainda não
-Hoje é o protótipo navegável:
-- os dados de exemplo vêm junto com a página;
-- o que alguém cadastra fica salvo só naquele navegador e não aparece para os colegas;
-- Drive, Conta Azul, consulta de CNPJ e e-mails são simulados.
+## Onde ficam os dados
+- O sistema começa vazio. Tudo o que for cadastrado fica salvo no navegador do computador onde foi feito.
+- Outro computador ou outro navegador não vê esses dados, e limpar o histórico do navegador apaga tudo.
+- Em **Configurações** > **Backup dos dados**, use **Baixar backup** com frequência. **Restaurar backup** carrega o arquivo em outro computador.
+- A consulta de CNPJ já é real (Receita Federal pela BrasilAPI). Drive, Gmail e Conta Azul ainda não estão conectados.
 
-O próximo passo para uso real é um banco de dados (Cloudflare D1) para a equipe compartilhar os mesmos dados.
+O próximo passo para a equipe toda usar os mesmos dados é o banco de dados (Cloudflare D1).

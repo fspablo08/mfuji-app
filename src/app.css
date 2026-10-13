@@ -594,3 +594,8 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .cal-2{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .cal-2 .seg{flex:none}
 .cal-2 .leg2{flex:1;min-width:240px;row-gap:4px}
+
+/* logo real */
+.logo img{display:block;width:100%;max-width:210px;height:auto}
+.tlogo{display:none;height:26px;width:auto}
+@media (max-width:980px){.tlogo{display:block}}
