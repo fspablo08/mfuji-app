@@ -213,22 +213,6 @@ VIEWS.cli=function(v){
   render();
 };
 
-/* ===== CARTEIRA ===== */
-VIEWS.cart=function(v){
-  VIEWS.cart.show=function(){
-  var ab=RECEBER.filter(function(r){return !r.pago}),tot=ab.reduce(function(s,r){return s+r.valor},0),venc=ab.filter(function(r){return recSt(r)[1]==="Vencido"}),mk=TD.slice(0,7),rec=RECEBER.filter(function(r){return r.pago&&r.pago.slice(0,7)===mk});
-  function sum(a){return brl(a.reduce(function(s,r){return s+r.valor},0))}
-  v.innerHTML='<div class="grid">'
-  +'<div class="card c12" style="flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px"><span class="lg2" style="width:34px;height:34px;border-radius:9px;background:#3872CF;color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700">CA</span><span style="flex:1;min-width:200px"><b style="font-size:12.5px">Conta Azul</b><span class="sub" style="display:block">Saldo, contratos, fluxo de caixa e inadimplência aparecem aqui quando a Conta Azul for conectada.</span></span><span class="pill al">Não conectada</span></div>'
-  +'<div class="card hero c3"><div class="ring" aria-hidden="true"></div><div class="hh"><span>A receber · avulsos</span><button class="plus" type="button" aria-label="Novo lançamento" data-go="rec">+</button></div><b class="num">'+brl(tot)+'</b><p class="hs">'+ab.length+' cobrança'+(ab.length===1?'':'s')+' em aberto</p><div class="ha"><button class="w" type="button" data-go="rec">Abrir A receber</button></div></div>'
-  +'<div class="card c9"><div class="ch"><h4>Clientes avulsos</h4><span class="sub">Lançados na aba A receber</span></div><div class="kp" style="--n:3">'
-   +'<div><span class="sq">'+ic("clock",14)+'</span><span class="t">Vencido</span><b class="num">'+sum(venc)+'</b><span class="pill '+(venc.length?'er':'ok')+'">'+venc.length+' cobrança'+(venc.length===1?'':'s')+'</span></div>'
-   +'<div><span class="sq">'+ic("up",14)+'</span><span class="t">Recebido no mês</span><b class="num">'+sum(rec)+'</b><span class="pill ok">'+rec.length+' pagamento'+(rec.length===1?'':'s')+'</span></div>'
-   +'<div><span class="sq">'+ic("os",14)+'</span><span class="t">Contratos</span><b class="num">—</b><span class="pill ne">Via Conta Azul</span></div></div></div>'
-  +'</div>';
-  };
-};
-
 /* ===== A RECEBER ===== */
 var REC_SEL=0;
 VIEWS.rec=function(v){
@@ -326,45 +310,6 @@ VIEWS.rec=function(v){
   all();
 };
 
-/* ===== FATURAS ===== */
-VIEWS.fat=function(v){
-  v.innerHTML='<div class="grid">'
-  +'<div class="card c12" style="flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px"><span style="width:34px;height:34px;border-radius:9px;background:#3872CF;color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700">CA</span><span style="flex:1;min-width:200px"><b style="font-size:12.5px">Faturas recebidas no CNPJ</b><span class="sub" style="display:block">As contas a pagar e os vencimentos vêm da Conta Azul.</span></span><span class="pill al">Não conectada</span></div>'
-  +'<div class="card c12"><div class="ch"><h4>Faturas</h4></div><p class="mut txt">Nenhuma fatura ainda. Elas aparecem aqui assim que a Conta Azul for conectada.</p></div>'
-  +'</div>';
-};
-
-/* ===== RELATÓRIOS ===== */
-VIEWS.rel=function(v){
-  var cur=0,yr=TODAY.getFullYear(),M=MES3.slice(0,TODAY.getMonth()+1);
-  function porMes(lista,data,val){var a=M.map(function(){return 0});lista.forEach(function(x){var d=String(data(x)||"");if(+d.slice(0,4)===yr){var m=+d.slice(5,7)-1;if(m<a.length)a[m]+=val?val(x):1}});return a}
-  function soma(a){return a.reduce(function(s,x){return s+x},0)}
-  function n0(x){return Math.round(x).toLocaleString("pt-BR")}
-  function R(){
-    var ag=porMes(EVENTS,function(e){return e.date}),os=porMes(OSL,function(o){return o[1]}),rc=porMes(RECEBER.filter(function(r){return r.pago}),function(r){return r.pago},function(r){return r.valor});
-    var fam={};EVENTS.forEach(function(e){if(+e.date.slice(0,4)===yr)(e.svs||[e.s]).forEach(function(s){fam[s]=(fam[s]||0)+1})});
-    var top=Object.keys(fam).sort(function(a,b){return fam[b]-fam[a]}).slice(0,3);
-    var ab=RECEBER.filter(function(r){return !r.pago});
-    var gv=0,g30=0;CLIENTES.forEach(function(c){garOf(c).map(garInfo).forEach(function(i){if(i.left>=0)gv++;if(i.left>=0&&i.left<=30)g30++})});
-    return [
-     ["Agendamentos","Visitas agendadas por mês",n0(soma(ag)),ag,n0,[["Total no ano",n0(soma(ag))],["Este mês",n0(ag[ag.length-1])]].concat(top.map(function(s){return [s,n0(fam[s])]}))],
-     ["OS emitidas","Ordens emitidas por mês",n0(soma(os)),os,n0,[["Total no ano",n0(soma(os))],["Este mês",n0(os[os.length-1])],["Aguardando assinatura",n0(OSL.filter(function(o){return o[6]==="Aguardando assinatura"}).length)]]],
-     ["Recebido · avulsos","Recebimentos de clientes avulsos por mês",brl(soma(rc),0),rc,function(x,ax){return ax?(x>=1000?"R$ "+Math.round(x/1000)+"k":"R$ "+Math.round(x)):brl(x)},[["Recebido no ano",brl(soma(rc))],["Em aberto",brl(ab.reduce(function(s,r){return s+r.valor},0))],["Vencido",brl(ab.filter(function(r){return recSt(r)[1]==="Vencido"}).reduce(function(s,r){return s+r.valor},0))]]],
-     ["Garantias","Garantias registradas na agenda",n0(gv)+" vigentes",porMes(EVENTS.filter(function(e){return e.gar>0}),function(e){return e.date}),n0,[["Vigentes",n0(gv)],["Vencem em 30 dias",n0(g30)]]]
-    ];
-  }
-  function render(){
-    var L=R(),r=L[cur];
-    v.innerHTML='<div class="grid"><div class="c12" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px">'
-     +L.map(function(x,i){return '<button class="rep" type="button" data-r="'+i+'" aria-pressed="'+(i===cur)+'"><span class="sq">'+ic(["agenda","os","rec","shield"][i],14)+'</span><b>'+x[0]+'</b><span class="v num">'+x[2]+'</span><small>'+x[1]+'</small></button>'}).join("")+'</div>'
-     +'<div class="card c8"><div class="ch"><h4>'+r[1]+'</h4><div class="r"><span class="sel">Jan – '+MES3[TODAY.getMonth()]+' '+yr+'</span></div></div><div class="chartbox" id="rBox"><svg viewBox="0 0 520 200" role="img" aria-label="'+r[1]+'"></svg><div class="tip" hidden></div></div></div>'
-     +'<div class="card c4"><div class="ch"><h4>Destaques</h4></div><div class="kv2" style="grid-template-columns:minmax(0,1fr)">'+r[5].map(function(k){return '<div><small>'+k[0]+'</small><span style="font-size:15px;font-weight:600">'+k[1]+'</span></div>'}).join("")+'</div></div></div>';
-    barsChart($("#rBox svg"),$("#rBox .tip"),M,r[3],r[4],true);
-  }
-  v.addEventListener("click",function(e){var b=e.target.closest(".rep");if(b){cur=+b.dataset.r;render()}});
-  VIEWS.rel.show=render;
-};
-
 /* ===== FUNCIONÁRIOS ===== */
 var FUN_SEL=0;
 VIEWS.func=function(v){
@@ -419,7 +364,7 @@ VIEWS.cfg=function(v){
    +'<div class="kv2"><div><small>Registros salvos</small><span>'+tot+'</span></div><div><small>Último salvamento</small><span>'+salvo()+'</span></div></div>'
    +'<div class="acts" style="justify-content:flex-start;flex-wrap:wrap"><button class="cta" type="button" id="bkDown">'+ic("down",13)+' Baixar backup</button><button class="ghost" type="button" id="bkUp">'+ic("up",13)+' Restaurar backup</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div></div>'
   +'<div class="card c6"><div class="ch"><h4>Integrações</h4><span class="sub">Próximas etapas</span></div>'
-   +[["CF","#B49B54","Cloudflare","Hospedagem do sistema","Conectado"],["R","#2F8F5B","Receita Federal","Consulta de CNPJ pela BrasilAPI","Conectado"],["D1","#B49B54","Banco de dados (Cloudflare D1)","Dados compartilhados entre a equipe","Próxima etapa"],["G","#3872CF","Google Drive","Pastas de clientes e OS em PDF","Não conectado"],["M","#C2413A","Gmail","3 caixas: atendimento, financeiro e comercial","Não conectado"],["CA","#253C8D","Conta Azul","Carteira, contratos e faturas","Não conectado"],["IA","#18275E","Assistente","Base de conhecimento da Monte Fuji","Aguardando conteúdo"]].map(function(x){return '<div class="intg"><span class="lg2" style="background:'+x[1]+'">'+x[0]+'</span><span class="grow"><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="pill '+(x[4]==="Conectado"?"ok":x[4]==="Próxima etapa"?"in":"al")+'">'+x[4]+'</span></div>'}).join("")+'</div>'
+   +[["CF","#B49B54","Cloudflare","Hospedagem do sistema","Conectado"],["R","#2F8F5B","Receita Federal","Consulta de CNPJ pela BrasilAPI","Conectado"],["D1","#B49B54","Banco de dados (Cloudflare D1)","Dados compartilhados entre a equipe","Próxima etapa"],["G","#3872CF","Google Drive","Pastas de clientes e OS em PDF","Não conectado"],["M","#C2413A","Gmail","3 caixas: atendimento, financeiro e comercial","Não conectado"],["CA","#253C8D","Conta Azul","Clientes e pagamentos","Não conectado"],["IA","#18275E","Assistente","Base de conhecimento da Monte Fuji","Aguardando conteúdo"]].map(function(x){return '<div class="intg"><span class="lg2" style="background:'+x[1]+'">'+x[0]+'</span><span class="grow"><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="pill '+(x[4]==="Conectado"?"ok":x[4]==="Próxima etapa"?"in":"al")+'">'+x[4]+'</span></div>'}).join("")+'</div>'
   +'<div class="card c6"><div class="ch"><h4>Usuários</h4></div><ul class="ls"><li><span class="av" style="background:var(--trigo);color:var(--fluxo)">PB</span><span class="grow"><b>Pablo</b><small>Administrador</small></span></li></ul><p class="sub">Login e permissões por usuário entram junto com o banco de dados compartilhado.</p></div></div>';
   }
   v.addEventListener("click",function(e){

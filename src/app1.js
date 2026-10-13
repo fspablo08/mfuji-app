@@ -34,8 +34,7 @@ function ic(n,s){return '<svg width="'+(s||15)+'" height="'+(s||15)+'" viewBox="
 var NAV=[
  ["Principal",[["dash","Dashboard","Início","“Proteção que evolui. Veja a operação de hoje num só lugar.”"],["agenda","Agenda","Agenda","Visitas e serviços do mês, por dia, semana, mês ou ano."],["assist","Assistente","Assistente","Pergunte, peça rascunhos de resposta e sugestões de datas."],["notas","Anotações","Anotações","O que fazer hoje, o que está pendente e o que ficou para trás."]]],
  ["Operação",[["os","Ordens de serviço","Ordens de serviço","Preencha o formulário e imprima a OS no modelo padrão da Monte Fuji."],["cli","Clientes","Clientes","Cadastro, histórico de serviços e garantias de cada cliente."],["mail","E-mails","E-mails","Caixa do Gmail: o que responder, o que está pendente e o que foi enviado."]]],
- ["Financeiro",[["cart","Carteira","Carteira","Fluxo financeiro, contratos e inadimplentes via Conta Azul."],["rec","A receber","A receber","Cobranças de clientes avulsos: nota fiscal, envio da cobrança e recebimento."],["fat","Faturas","Faturas","Contas a pagar recebidas no CNPJ e seus vencimentos."]]],
- ["Gestão",[["rel","Relatórios","Relatórios","Financeiro, ordens emitidas, serviços realizados, cancelados e vencidos."]]],
+ ["Financeiro",[["rec","A receber","A receber","Cobranças de clientes avulsos: nota fiscal, envio da cobrança e recebimento."]]],
  ["RH",[["func","Funcionários","Funcionários","Dados, documentos, uniformes e EPIs de cada colaborador."]]],
  ["Preferências",[["cfg","Configurações","Configurações","Empresa, integrações, usuários e notificações."],["help","Central de ajuda","Central de ajuda","Dúvidas frequentes, atalhos e contato do suporte."]]]
 ];
@@ -82,10 +81,7 @@ var AI={
   os:[["Como gero uma OS?","Escolha o cliente, descreva o serviço, preencha as observações e a data. A pré-visualização segue o modelo de vocês."]],
   cli:[["Como cadastro um cliente?","Clique em <b>Novo cliente</b> e digite o CNPJ: razão social, endereço e telefone vêm da Receita Federal."]],
   mail:[["Quando os e-mails aparecem aqui?","Assim que as caixas do Gmail (atendimento, financeiro e comercial) forem conectadas."]],
-  cart:[["Quando a carteira fica pronta?","Assim que a Conta Azul for conectada, os contratos e o fluxo de caixa aparecem aqui."]],
   rec:[["Como lanço uma cobrança?","Clique em <b>+ Novo lançamento</b>, digite o CNPJ do cliente avulso, o valor, a nota fiscal e quando a cobrança foi enviada."]],
-  fat:[["Quando as faturas aparecem?","Assim que a Conta Azul for conectada, as contas a pagar do CNPJ aparecem aqui."]],
-  rel:[["De onde vêm os números?","Dos agendamentos, das ordens de serviço e das cobranças cadastradas no sistema."]],
   func:[["Por que cadastrar a data de nascimento?","Os aniversários da equipe aparecem coloridos na agenda."]],
   cfg:[["Como faço backup?","Em <b>Backup dos dados</b>, clique em <b>Baixar backup</b>. Guarde o arquivo: com ele dá para restaurar tudo em outro computador."]],
   help:[["Como cadastro uma nova visita?","Vá em Agenda e clique em <b>+ Novo agendamento</b>. Digite o nome do cliente, marque os serviços, adicione uma ou mais datas e escolha a garantia."]]
@@ -192,23 +188,6 @@ function openCliModal(nome,cb){
 }
 
 /* ===== gráficos reutilizáveis ===== */
-function barsChart(svg,tip,labels,vals,fmt,hiLast){
-  var W=520,H=200,L=36,R=6,T=16,B=22,max=Math.max(Math.max.apply(null,vals)*1.15,4),font="Lexend Deca, sans-serif";
-  var nice=Math.pow(10,Math.floor(Math.log10(max)));max=Math.ceil(max/nice)*nice;
-  function yv(v){return T+(1-v/max)*(H-T-B)}
-  [0,.25,.5,.75,1].forEach(function(f){var v=max*f;el("line",{x1:L,x2:W-R,y1:yv(v),y2:yv(v),stroke:f===0?"#CAC9C5":"#EDEDEA"},svg);var t=el("text",{x:L-6,y:yv(v)+3.5,"text-anchor":"end","font-size":9,fill:"#868684","font-family":font},svg);t.textContent=fmt(v,true)});
-  var step=(W-L-R)/labels.length,bw=Math.min(28,step*.55);
-  labels.forEach(function(l,i){
-    var cx=L+step*i+step/2,last=hiLast&&i===labels.length-1;
-    var r=el("rect",{x:cx-bw/2,y:yv(vals[i]),width:bw,height:Math.max(2,yv(0)-yv(vals[i])),rx:4,fill:last?"#18275E":"#5A8AD7"},svg);
-    var t=el("text",{x:cx,y:H-6,"text-anchor":"middle","font-size":9,fill:last?"#18275E":"#4A4A49","font-weight":last?600:400,"font-family":font},svg);t.textContent=l;
-    if(last){var v=el("text",{x:cx,y:yv(vals[i])-6,"text-anchor":"middle","font-size":10,"font-weight":600,fill:"#2C2C2C","font-family":font},svg);v.textContent=fmt(vals[i])}
-    var hit=el("rect",{x:L+step*i,y:T,width:step,height:H-T-B,fill:"transparent"},svg);
-    hit.addEventListener("pointerenter",function(){var rr=svg.getBoundingClientRect();tip.hidden=false;tip.innerHTML="<p>"+l+"</p><b>"+fmt(vals[i])+"</b>";tip.style.left=(cx/W*rr.width)+"px";tip.style.top=(yv(vals[i])/H*rr.height-6)+"px";r.setAttribute("fill","#18275E")});
-    hit.addEventListener("pointerleave",function(){tip.hidden=true;r.setAttribute("fill",last?"#18275E":"#5A8AD7")});
-  });
-}
-
 /* ===== DASHBOARD ===== */
 VIEWS.dash=function(v){
   VIEWS.dash.show=function(){
