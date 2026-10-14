@@ -607,3 +607,5 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .cpb{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--linha);background:#fff;color:var(--fluxo);display:grid;place-items:center;cursor:pointer}
 .cpb:hover{background:var(--hidra-50)}
 .cpb.ok{background:var(--ok-50);color:var(--ok);border-color:var(--ok)}
+.bkh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
+.bkh b{font-size:13px;font-weight:600;color:var(--fluxo)}

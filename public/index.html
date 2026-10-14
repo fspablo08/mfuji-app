@@ -617,6 +617,8 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .cpb{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--linha);background:#fff;color:var(--fluxo);display:grid;place-items:center;cursor:pointer}
 .cpb:hover{background:var(--hidra-50)}
 .cpb.ok{background:var(--ok-50);color:var(--ok);border-color:var(--ok)}
+.bkh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
+.bkh b{font-size:13px;font-weight:600;color:var(--fluxo)}
 
 </style>
 <div class="app" id="app">
@@ -1503,6 +1505,7 @@ VIEWS.func=function(v){
 };
 
 /* ===== CONFIGURAÇÕES ===== */
+var BANCOS=[["Bradesco",[["Banco","Bradesco (237)"],["Agência","0127"],["Conta","6782-2"],["CNPJ","05.889.593/0001-02"],["Pix","sac@mfuji.com.br"]]],["Conta Azul",[["Banco","775 - CONTAAZUL IP"],["Agência","0001"],["Conta","43039-0"],["CNPJ","05.889.593/0001-02"],["Pix","financeiro@mfuji.com.br"]]]];
 var EMPRESA=[["Razão social","Monte Fuji Dedetizadora e Desentupidora"],["CNPJ","05.889.593/0001-02"],["Inscrição estadual","492.508.250.116"],["Endereço","Rua Anhanguera, 549 · Piratininga, Osasco/SP"],["Site","mfuji.com.br"],["Telefone","(11) 3609-5222"],["WhatsApp","(11) 99742-0106"],["E-mail","atendimento@mfuji.com.br"],["Instagram","@monte_fuji_dedetizadora"]];
 function copyText(t,cb){function fb(){var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(x){}ta.remove();cb(ok)}
   try{navigator.clipboard.writeText(t).then(function(){cb(true)},fb)}catch(x){fb()}}
@@ -1512,6 +1515,7 @@ VIEWS.cfg=function(v){
   var tot=CLIENTES.length+FUNC.length+OSL.length+TAREFAS.length+EVENTS.length+RECEBER.length;
   v.innerHTML='<div class="grid">'
   +'<div class="card c6"><div class="ch"><h4>Empresa</h4><span class="sub">Clique em copiar para colar onde precisar</span></div><div class="kv2 emp">'+EMPRESA.map(function(x,i){return '<div><span class="g"><small>'+x[0]+'</small><span>'+x[1]+'</span></span><button class="cpb" type="button" data-cp="'+i+'" aria-label="Copiar '+x[0]+'" title="Copiar">'+ic("doc",13)+'</button></div>'}).join("")+'</div></div>'
+  +'<div class="card c6"><div class="ch"><h4>Dados bancários</h4><span class="sub">Para enviar aos clientes</span></div>'+BANCOS.map(function(b,bi){return '<div class="bkh"><b>'+b[0]+'</b><button class="ghost" type="button" data-cpall="'+bi+'">'+ic("doc",12)+' Copiar todos</button></div><div class="kv2 emp">'+b[1].map(function(x,i){return '<div><span class="g"><small>'+x[0]+'</small><span>'+x[1]+'</span></span><button class="cpb" type="button" data-cpb="'+bi+'-'+i+'" aria-label="Copiar '+x[0]+' '+b[0]+'" title="Copiar">'+ic("doc",13)+'</button></div>'}).join("")+'</div>'}).join("")+'</div>'
   +'<div class="card c6"><div class="ch"><h4>Backup dos dados</h4><span class="pill in">Neste navegador</span></div>'
    +'<p class="txt">Por enquanto, tudo o que você cadastra fica salvo neste navegador, neste computador. Baixe um backup com frequência: com o arquivo dá para restaurar os dados em outro computador ou depois de limpar o navegador.</p>'
    +'<div class="kv2"><div><small>Registros salvos</small><span>'+tot+'</span></div><div><small>Último salvamento</small><span>'+salvo()+'</span></div></div>'
@@ -1521,7 +1525,8 @@ VIEWS.cfg=function(v){
   +'<div class="card c6"><div class="ch"><h4>Usuários</h4></div><ul class="ls"><li><span class="av" style="background:var(--trigo);color:var(--fluxo)">PB</span><span class="grow"><b>Pablo</b><small>Administrador</small></span></li></ul><p class="sub">Login e permissões por usuário entram junto com o banco de dados compartilhado.</p></div></div>';
   }
   v.addEventListener("click",function(e){
-    var cp=e.target.closest("[data-cp]");if(cp){var it=EMPRESA[+cp.dataset.cp];copyText(it[1],function(ok){if(ok){cp.classList.add("ok");cp.innerHTML=ic("chk",13);setTimeout(function(){cp.classList.remove("ok");cp.innerHTML=ic("doc",13)},1500);toast(it[0]+" copiado.")}else toast("Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
+    var all=e.target.closest("[data-cpall]");if(all){var bk=BANCOS[+all.dataset.cpall];copyText(bk[1].map(function(x){return x[0]+": "+x[1]}).join("\n"),function(ok){toast(ok?"Dados do "+bk[0]+" copiados.":"Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
+    var cp=e.target.closest("[data-cp],[data-cpb]");if(cp){var it=cp.dataset.cp!==undefined?EMPRESA[+cp.dataset.cp]:(function(p){var b=BANCOS[+p[0]];return [b[1][+p[1]][0]+" "+b[0],b[1][+p[1]][1]]})(cp.dataset.cpb.split("-"));copyText(it[1],function(ok){if(ok){cp.classList.add("ok");cp.innerHTML=ic("chk",13);setTimeout(function(){cp.classList.remove("ok");cp.innerHTML=ic("doc",13)},1500);toast(it[0]+" copiado.")}else toast("Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
     if(e.target.closest("#bkDown")){dbSave();var a=document.createElement("a"),b=new Blob([JSON.stringify(dbDump(),null,1)],{type:"application/json"});a.href=URL.createObjectURL(b);a.download="backup-monte-fuji-"+TD+".json";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);toast("Backup baixado.");render();return}
     if(e.target.closest("#bkUp")){$("#bkFile").click();return}
   });
