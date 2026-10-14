@@ -599,3 +599,11 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .logo img{display:block;width:100%;max-width:210px;height:auto}
 .tlogo{display:none;height:26px;width:auto}
 @media (max-width:980px){.tlogo{display:block}}
+
+/* Empresa: copiar cada dado */
+.kv2.emp>div{display:flex;align-items:center;gap:8px}
+.kv2.emp .g{flex:1;min-width:0}
+.kv2.emp .g>span{display:block}
+.cpb{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--linha);background:#fff;color:var(--fluxo);display:grid;place-items:center;cursor:pointer}
+.cpb:hover{background:var(--hidra-50)}
+.cpb.ok{background:var(--ok-50);color:var(--ok);border-color:var(--ok)}

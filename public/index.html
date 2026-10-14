@@ -610,6 +610,14 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .tlogo{display:none;height:26px;width:auto}
 @media (max-width:980px){.tlogo{display:block}}
 
+/* Empresa: copiar cada dado */
+.kv2.emp>div{display:flex;align-items:center;gap:8px}
+.kv2.emp .g{flex:1;min-width:0}
+.kv2.emp .g>span{display:block}
+.cpb{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--linha);background:#fff;color:var(--fluxo);display:grid;place-items:center;cursor:pointer}
+.cpb:hover{background:var(--hidra-50)}
+.cpb.ok{background:var(--ok-50);color:var(--ok);border-color:var(--ok)}
+
 </style>
 <div class="app" id="app">
   <aside class="side" id="side" aria-label="Menu"></aside>
@@ -1495,12 +1503,15 @@ VIEWS.func=function(v){
 };
 
 /* ===== CONFIGURAÇÕES ===== */
+var EMPRESA=[["Razão social","Monte Fuji Dedetizadora e Desentupidora"],["CNPJ","05.889.593/0001-02"],["Inscrição estadual","492.508.250.116"],["Endereço","Rua Anhanguera, 549 · Piratininga, Osasco/SP"],["Site","mfuji.com.br"],["Telefone","(11) 3609-5222"],["WhatsApp","(11) 99742-0106"],["E-mail","atendimento@mfuji.com.br"],["Instagram","@monte_fuji_dedetizadora"]];
+function copyText(t,cb){function fb(){var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(x){}ta.remove();cb(ok)}
+  try{navigator.clipboard.writeText(t).then(function(){cb(true)},fb)}catch(x){fb()}}
 VIEWS.cfg=function(v){
   function salvo(){var t=null;try{t=localStorage.getItem("mfs-salvo")}catch(e){}return t?new Date(t).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}):"ainda nada salvo"}
   function render(){
   var tot=CLIENTES.length+FUNC.length+OSL.length+TAREFAS.length+EVENTS.length+RECEBER.length;
   v.innerHTML='<div class="grid">'
-  +'<div class="card c6"><div class="ch"><h4>Empresa</h4></div><div class="kv2"><div><small>Razão social</small><span>Monte Fuji Dedetizadora e Desentupidora</span></div><div><small>CNPJ</small><span>05.889.593/0001-02</span></div><div><small>Endereço</small><span>Rua Anhanguera, 549 · Piratininga, Osasco/SP</span></div><div><small>Site</small><span>mfuji.com.br</span></div><div><small>Telefone</small><span>(11) 3609-5222</span></div><div><small>WhatsApp</small><span>(11) 99742-0106</span></div><div><small>E-mail</small><span>atendimento@mfuji.com.br</span></div><div><small>Instagram</small><span>@monte_fuji_dedetizadora</span></div></div></div>'
+  +'<div class="card c6"><div class="ch"><h4>Empresa</h4><span class="sub">Clique em copiar para colar onde precisar</span></div><div class="kv2 emp">'+EMPRESA.map(function(x,i){return '<div><span class="g"><small>'+x[0]+'</small><span>'+x[1]+'</span></span><button class="cpb" type="button" data-cp="'+i+'" aria-label="Copiar '+x[0]+'" title="Copiar">'+ic("doc",13)+'</button></div>'}).join("")+'</div></div>'
   +'<div class="card c6"><div class="ch"><h4>Backup dos dados</h4><span class="pill in">Neste navegador</span></div>'
    +'<p class="txt">Por enquanto, tudo o que você cadastra fica salvo neste navegador, neste computador. Baixe um backup com frequência: com o arquivo dá para restaurar os dados em outro computador ou depois de limpar o navegador.</p>'
    +'<div class="kv2"><div><small>Registros salvos</small><span>'+tot+'</span></div><div><small>Último salvamento</small><span>'+salvo()+'</span></div></div>'
@@ -1510,6 +1521,7 @@ VIEWS.cfg=function(v){
   +'<div class="card c6"><div class="ch"><h4>Usuários</h4></div><ul class="ls"><li><span class="av" style="background:var(--trigo);color:var(--fluxo)">PB</span><span class="grow"><b>Pablo</b><small>Administrador</small></span></li></ul><p class="sub">Login e permissões por usuário entram junto com o banco de dados compartilhado.</p></div></div>';
   }
   v.addEventListener("click",function(e){
+    var cp=e.target.closest("[data-cp]");if(cp){var it=EMPRESA[+cp.dataset.cp];copyText(it[1],function(ok){if(ok){cp.classList.add("ok");cp.innerHTML=ic("chk",13);setTimeout(function(){cp.classList.remove("ok");cp.innerHTML=ic("doc",13)},1500);toast(it[0]+" copiado.")}else toast("Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
     if(e.target.closest("#bkDown")){dbSave();var a=document.createElement("a"),b=new Blob([JSON.stringify(dbDump(),null,1)],{type:"application/json"});a.href=URL.createObjectURL(b);a.download="backup-monte-fuji-"+TD+".json";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);toast("Backup baixado.");render();return}
     if(e.target.closest("#bkUp")){$("#bkFile").click();return}
   });
