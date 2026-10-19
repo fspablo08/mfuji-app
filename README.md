@@ -2,7 +2,7 @@
 
 Sistema interno da Monte Fuji (agenda, ordens de serviço, clientes, e-mails, a receber, funcionários).
 Primeira versão em uso: começa vazio e salva os cadastros no navegador (backup em Configurações).
-A consulta de CNPJ usa a BrasilAPI. Drive, Gmail e Conta Azul ainda não estão conectados.
+A consulta de CNPJ usa a BrasilAPI. Os clientes do Conta Azul entram por planilha (Clientes > Importar do Conta Azul); Drive, Gmail e a sincronização automática com o Conta Azul ainda não estão conectados.
 
 ## Estrutura
 - `src/`: código-fonte (`shell.html`, `app.css`, `data.js`, `app1.js`, `app2.js`).
