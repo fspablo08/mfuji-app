@@ -296,7 +296,7 @@ VIEWS.agenda=function(v){
      +(c?'<div><small>Contato</small><span>'+c.contato+'</span></div><div><small>Telefone</small><span>'+c.tel+'</span></div>':'')+'</div>'
      +(grp.length>1?'<div class="sub">Datas deste agendamento</div><ul class="dlist">'+grp.map(function(x){return '<li'+(x.id===e.id?' class="on"':'')+' data-ev="'+x.id+'">'+DIA3[new Date(x.date+"T12:00").getDay()]+', '+dmy(x.date)+' · '+hh(x.h)+'</li>'}).join("")+'</ul>':'')
      +(e.obs?'<div class="sub">Observações</div><p class="txt">'+e.obs+'</p>':'')
-     +'<div class="acts"><button class="cta rq" type="button" data-mkos>'+ic("os",13)+' Gerar OS</button>'+(c?'<a class="ghost" href="#cli" data-cli="'+c.id+'">Ver cliente</a>':'')+'<button class="ghost" type="button" data-del>Excluir</button></div></div>';
+     +'<div class="acts"><button class="cta rq" type="button" data-mkos>'+ic("os",13)+' Gerar OS</button><button class="ghost" type="button" data-com>'+ic("down",13)+' Baixar comunicado</button>'+(c?'<a class="ghost" href="#cli" data-cli="'+c.id+'">Ver cliente</a>':'')+'<button class="ghost" type="button" data-del>Excluir</button></div></div>';
     mark();
   }
   function load(){
@@ -333,6 +333,7 @@ VIEWS.agenda=function(v){
     var nd=t.closest("[data-newon]");if(nd){openNew(nd.dataset.newon);return}
     var day=t.closest("[data-day]");if(day){if(e.detail===2||day.classList.contains("hd")){var p=day.dataset.day.split("-");st.d=new Date(+p[0],+p[1]-1,+p[2]);st.view="dia";st.sel=day.dataset.day;st.ev=null;render()}else side(day.dataset.day);return}
     var ym=t.closest(".ym");if(ym){st.d=new Date(st.d.getFullYear(),+ym.dataset.m,1);st.view="mes";render();return}
+    if(t.closest("[data-com]")){var evc=EVENTS.find(function(x){return x.id===st.ev});if(evc)openComunicado(evc);return}
     if(t.closest("#cNew")){openNew();return}
     if(t.closest("#cWpp")){$("#wpD").value=amanha();var hr=new Date().getHours();$("#wpS").value=hr<12?"Bom dia":hr<18?"Boa tarde":"Boa noite";wpFill();$("#wpModal").hidden=false;return}
     if(t.closest("[data-wpx]")||t===$("#wpModal")){$("#wpModal").hidden=true;return}

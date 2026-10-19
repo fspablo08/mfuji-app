@@ -375,7 +375,7 @@ VIEWS.cfg=function(v){
   v.addEventListener("click",function(e){
     var all=e.target.closest("[data-cpall]");if(all){var bk=BANCOS[+all.dataset.cpall];copyText(bk[1].map(function(x){return x[0]+": "+x[1]}).join("\n"),function(ok){toast(ok?"Dados do "+bk[0]+" copiados.":"Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
     var cp=e.target.closest("[data-cp],[data-cpb]");if(cp){var it=cp.dataset.cp!==undefined?EMPRESA[+cp.dataset.cp]:(function(p){var b=BANCOS[+p[0]];return [b[1][+p[1]][0]+" "+b[0],b[1][+p[1]][1]]})(cp.dataset.cpb.split("-"));copyText(it[1],function(ok){if(ok){cp.classList.add("ok");cp.innerHTML=ic("chk",13);setTimeout(function(){cp.classList.remove("ok");cp.innerHTML=ic("doc",13)},1500);toast(it[0]+" copiado.")}else toast("Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
-    if(e.target.closest("#bkDown")){dbSave();var a=document.createElement("a"),b=new Blob([JSON.stringify(dbDump(),null,1)],{type:"application/json"});a.href=URL.createObjectURL(b);a.download="backup-monte-fuji-"+TD+".json";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);toast("Backup baixado.");render();return}
+    if(e.target.closest("#bkDown")){dbSave();saveFile("backup-monte-fuji-"+TD+".json",new Blob([JSON.stringify(dbDump(),null,1)],{type:"application/json"}),function(ok,code){if(ok)toast("Backup baixado.");else if(code!=="declined")toast("Não foi possível baixar o arquivo aqui.")});render();return}
     if(e.target.closest("#bkUp")){$("#bkFile").click();return}
   });
   v.addEventListener("change",function(e){
@@ -412,3 +412,81 @@ $("#gSearch").addEventListener("keydown",function(e){if(e.key==="Enter"&&this.va
 window.addEventListener("hashchange",function(){go(location.hash.slice(1))});
 window.addEventListener("resize",function(){var on=$(".view.on");if(on&&VIEWS[on.id.slice(2)]&&VIEWS[on.id.slice(2)].show)VIEWS[on.id.slice(2)].show()});
 go(location.hash.slice(1)||"dash");
+
+/* ===== COMUNICADO EM PDF ===== */
+/* Salva um arquivo: no protótipo do Claude pede permissão ao visualizador; no site, baixa direto */
+function saveFile(name,blob,cb){
+  function direct(){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},800);cb&&cb(true)}
+  var c=window.claude;if(!c||!c.use)return direct();
+  c.use("downloads").then(function(d){if(!d)return direct();d.save({filename:name,data:blob}).then(function(){cb&&cb(true)},function(er){cb&&cb(false,er&&er.code)})},direct)}
+function comTextos(svs){var pr="Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. Recomendamos manter as janelas fechadas e evitar a circulação e a permanência nas áreas sinalizadas por nossa equipe, especialmente de crianças, gestantes, idosos e animais de estimação.",
+  ag="Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. Recomendamos o uso consciente da água, a fim de evitar possíveis interrupções no abastecimento durante o período de manutenção.";
+  var ps=[];svs.forEach(function(s){var t=SERV[s]&&SERV[s].g==="Reservatórios de água"?ag:pr;if(ps.indexOf(t)<0)ps.push(t)});
+  if(ps.length>1)ps=[ps[0],ps[1].replace("Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. ","")];return ps}
+function listaPt(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" e "+a[a.length-1]}
+function comDados(o){var p=o.date.split("-"),pub=o.pub==="col";
+  return {nome:o.nome,tit:listaPt(o.svs).toUpperCase(),saud:pub?"PREZADOS COLABORADORES.":"SENHORES (A) CONDÔMINOS.",
+    data:+p[2]+" de "+MES[+p[1]-1]+" de "+p[0],hora:o.h+"h",serv:listaPt(o.svs.map(function(s){return s.toLowerCase()})),onde:pub?"nas dependências da empresa":"nas áreas comuns do Condomínio",ps:comTextos(o.svs)}}
+var COM_LOADED=null;
+function comImgs(){if(COM_LOADED)return COM_LOADED;
+  var fl=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 20px "Lexend Deca"'),document.fonts.load('400 20px "Lexend Deca"')]).catch(function(){}):Promise.resolve();
+  COM_LOADED=Promise.all(["top","mid","bot"].map(function(k){return new Promise(function(ok){var i=new Image();i.onload=function(){ok(i)};i.onerror=function(){ok(null)};i.src=COM_IMG[k]})}).concat([fl]));return COM_LOADED}
+/* Desenha a página A4 (em pontos, como o modelo original) num canvas */
+function comCanvas(o,sc){return comImgs().then(function(im){
+  var W=595.28,H=841.89,cv=document.createElement("canvas");cv.width=Math.round(W*sc);cv.height=Math.round(H*sc);
+  var x=cv.getContext("2d"),F='"Lexend Deca","Lexend",Arial,sans-serif',INK="#111827",AZ="#2F62B3",L=58.26,R=537;
+  x.scale(sc,sc);x.fillStyle="#B5B5B5";x.fillRect(0,0,W,H);
+  if(im[0])x.drawImage(im[0],12.26,12.04,571.71,99.51);
+  x.fillStyle="#EDEDED";x.beginPath();if(x.roundRect)x.roundRect(12.26,119.97,571.71,656.25,12);else x.rect(12.26,119.97,571.71,656.25);x.fill();
+  if(im[1])x.drawImage(im[1],12.26,505.88,571.71,270.34);
+  if(im[2])x.drawImage(im[2],12.26,782.53,571.71,47.15);
+  function fnt(w,s){x.font=w+" "+s+"px "+F}
+  function fit(t,w,s,max){fnt(w,s);while(x.measureText(t).width>max&&s>12){s-=.5;fnt(w,s)}return s}
+  /* quebra de linha com trechos em negrito/azul */
+  function para(segs,y,s,lh,col){var words=[];segs.forEach(function(g){g.t.split(" ").forEach(function(w,i,a){if(w)words.push({w:w,b:g.b,sp:i<a.length-1})})});
+    var lines=[[]],cx=0;words.forEach(function(wd){fnt(wd.b?700:400,s);var ww=x.measureText(wd.w).width,sp=x.measureText(" ").width;if(cx+ww>R-L&&lines[lines.length-1].length){lines.push([]);cx=0}wd.x=cx;lines[lines.length-1].push(wd);cx+=ww+(wd.sp?sp:0)});
+    lines.forEach(function(ln,i){ln.forEach(function(wd){fnt(wd.b?700:400,s);x.fillStyle=wd.b?AZ:col;x.fillText(wd.w,L+wd.x,y+i*lh)})});return y+(lines.length-1)*lh}
+  x.textBaseline="alphabetic";x.fillStyle=INK;fnt(700,29);x.fillText("COMUNICADO",L,181.97);
+  var s=fit(o.nome,700,21,R-L);x.fillStyle=INK;x.fillText(o.nome,L,208.97);
+  var y=para([{t:o.tit,b:1}],243.97,12.5,16,AZ),d=y-243.97;
+  x.strokeStyle=AZ;x.lineWidth=1.1;x.beginPath();x.moveTo(L,266.97+d);x.lineTo(413.25,266.97+d);x.stroke();
+  x.fillStyle=INK;fnt(700,17.5);x.fillText(o.saud,L,302.97+d);
+  y=para([{t:"No dia "},{t:o.data,b:1},{t:", a partir das "+o.hora+", realizaremos os serviços de "+o.serv+" "+o.onde+"."}],332.97+d,11.6,18,INK);
+  o.ps.forEach(function(p){y=para([{t:p}],y+24,11.6,18,INK)});
+  fnt(400,11);x.fillStyle=INK;x.fillText("Atenciosamente,",L,y+44);x.fillText("Equipe Monte Fuji",L,y+60);
+  return cv})}
+/* PDF de uma página com a imagem JPEG ocupando o A4 */
+function pdfJpeg(jpg,w,h){var te=new TextEncoder(),parts=[],len=0,offs=[];
+  function put(d){var u=typeof d==="string"?te.encode(d):d;parts.push(u);len+=u.length}
+  function obj(n,body){offs[n]=len;put(n+" 0 obj\n"+body+"\nendobj\n")}
+  put("%PDF-1.4\n");obj(1,"<< /Type /Catalog /Pages 2 0 R >>");obj(2,"<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>");
+  var cs="q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";obj(4,"<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream");
+  offs[5]=len;put("5 0 obj\n<< /Type /XObject /Subtype /Image /Width "+w+" /Height "+h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n");put(jpg);put("\nendstream\nendobj\n");
+  var xr=len,t="xref\n0 6\n0000000000 65535 f \n";for(var i=1;i<=5;i++)t+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+  put(t+"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF\n");return new Blob(parts,{type:"application/pdf"})}
+function slug(t){return norm(t).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+function openComunicado(e){
+  var m=$("#cmModal");
+  if(!m){document.body.insertAdjacentHTML("beforeend",'<div class="modal" id="cmModal" hidden><div class="box cmbox" role="dialog" aria-modal="true" aria-labelledby="cmT"><div class="ch" style="margin:0"><h3 id="cmT">Comunicado para o cliente</h3><span class="pill ok">PDF</span></div>'
+    +'<div class="cmg"><div class="cmf"><div class="fld"><label for="cmNome">Nome no comunicado</label><input id="cmNome" type="text"></div>'
+    +'<div class="fld"><label for="cmPub">Para quem</label><select id="cmPub"><option value="cond">Condôminos</option><option value="col">Colaboradores</option></select></div>'
+    +'<div class="fld"><label for="cmData">Data do serviço</label><input id="cmData" type="date"></div>'
+    +'<div class="fld"><label for="cmHora">A partir das</label><select id="cmHora">'+[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(function(h){return '<option value="'+h+'">'+h+'h</option>'}).join("")+'</select></div>'
+    +'<p class="sub" style="margin:0">O serviço e o texto de recomendações vêm do agendamento.</p></div>'
+    +'<div class="cmprev"><img id="cmPrev" alt="Prévia do comunicado"></div></div>'
+    +'<div class="acts"><button class="ghost" type="button" data-cmx>Cancelar</button><button class="cta rq" type="button" id="cmGo">'+ic("down",13)+' Baixar comunicado</button></div></div></div>');
+    m=$("#cmModal");var tm=null;
+    m.addEventListener("input",function(){clearTimeout(tm);tm=setTimeout(prev,200)});
+    m.addEventListener("click",function(ev){
+      if(ev.target===m||ev.target.closest("[data-cmx]")){m.hidden=true;return}
+      if(ev.target.closest("#cmGo")){var o=cur(),bt=$("#cmGo");if(!o.nome){toast("Informe o nome que vai no comunicado.");return}bt.disabled=true;
+        comCanvas(comDados(o),2.5).then(function(cv){var b64=cv.toDataURL("image/jpeg",.9).split(",")[1],bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+          saveFile("comunicado-"+slug(o.nome)+"-"+o.date+".pdf",pdfJpeg(u,cv.width,cv.height),function(ok,code){bt.disabled=false;if(ok){m.hidden=true;toast("Comunicado baixado.")}else if(code!=="declined")toast("Não foi possível baixar o arquivo aqui.")})})}
+    });
+  }
+  function cur(){return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,date:$("#cmData").value||e.date,h:+$("#cmHora").value,svs:m._svs}}
+  function prev(){var o=cur();comCanvas(comDados(o),.9).then(function(cv){$("#cmPrev").src=cv.toDataURL("image/png")})}
+  m._svs=e.svs||[e.s];$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
+  $("#cmData").value=e.date;$("#cmHora").value=String(e.h);m.hidden=false;prev();
+}
