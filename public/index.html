@@ -1626,7 +1626,7 @@ function comTextos(svs){var pr="Contamos com a compreensão e a colaboração de
 function listaPt(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" e "+a[a.length-1]}
 function comDados(o){var p=o.date.split("-"),pub=o.pub==="col";
   return {nome:o.nome,tit:listaPt(o.svs).toUpperCase(),saud:pub?"PREZADOS COLABORADORES.":"SENHORES (A) CONDÔMINOS.",
-    data:+p[2]+" de "+MES[+p[1]-1]+" de "+p[0],hora:o.h+"h",serv:listaPt(o.svs.map(function(s){return s.toLowerCase()})),onde:pub?"nas dependências da empresa":"nas áreas comuns do Condomínio",ps:comTextos(o.svs)}}
+    data:+p[2]+" de "+MES[+p[1]-1]+" de "+p[0],hora:o.h+"h",obs:o.obs,serv:listaPt(o.svs.map(function(s){return s.toLowerCase()})),onde:pub?"nas dependências da empresa":"nas áreas comuns do Condomínio",ps:comTextos(o.svs)}}
 var COM_LOADED=null;
 function comImgs(){if(COM_LOADED)return COM_LOADED;
   var fl=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 20px "Lexend Deca"'),document.fonts.load('400 20px "Lexend Deca"')]).catch(function(){}):Promise.resolve();
@@ -1634,18 +1634,15 @@ function comImgs(){if(COM_LOADED)return COM_LOADED;
 /* Desenha a página A4 (em pontos, como o modelo original) num canvas */
 function comCanvas(o,sc){return comImgs().then(function(im){
   var W=595.28,H=841.89,cv=document.createElement("canvas");cv.width=Math.round(W*sc);cv.height=Math.round(H*sc);
-  var x=cv.getContext("2d"),F='"Lexend Deca","Lexend",Arial,sans-serif',INK="#111827",AZ="#2F62B3",L=58.26,R=537;
-  x.scale(sc,sc);x.fillStyle="#B5B5B5";x.fillRect(0,0,W,H);
-  if(im[0])x.drawImage(im[0],12.26,12.04,571.71,99.51);
-  x.fillStyle="#EDEDED";x.beginPath();if(x.roundRect)x.roundRect(12.26,119.97,571.71,656.25,12);else x.rect(12.26,119.97,571.71,656.25);x.fill();
-  if(im[1])x.drawImage(im[1],12.26,505.88,571.71,270.34);
-  if(im[2])x.drawImage(im[2],12.26,782.53,571.71,47.15);
+  var tc=document.createElement("canvas");tc.width=cv.width;tc.height=cv.height;
+  var mx=cv.getContext("2d"),x=tc.getContext("2d"),F='"Lexend Deca","Lexend",Arial,sans-serif',INK="#111827",AZ="#2F62B3",L=58.26,R=537;
+  x.scale(sc,sc);mx.scale(sc,sc);
   function fnt(w,s){x.font=w+" "+s+"px "+F}
   function fit(t,w,s,max){fnt(w,s);while(x.measureText(t).width>max&&s>12){s-=.5;fnt(w,s)}return s}
   /* quebra de linha com trechos em negrito/azul */
-  function para(segs,y,s,lh,col){var words=[];segs.forEach(function(g){g.t.split(" ").forEach(function(w,i,a){if(w)words.push({w:w,b:g.b,sp:i<a.length-1})})});
-    var lines=[[]],cx=0;words.forEach(function(wd){fnt(wd.b?700:400,s);var ww=x.measureText(wd.w).width,sp=x.measureText(" ").width;if(cx+ww>R-L&&lines[lines.length-1].length){lines.push([]);cx=0}wd.x=cx;lines[lines.length-1].push(wd);cx+=ww+(wd.sp?sp:0)});
-    lines.forEach(function(ln,i){ln.forEach(function(wd){fnt(wd.b?700:400,s);x.fillStyle=wd.b?AZ:col;x.fillText(wd.w,L+wd.x,y+i*lh)})});return y+(lines.length-1)*lh}
+  function para(segs,y,s,lh,col,lx,mw,dry){lx=lx||L;mw=mw||R-L;var words=[];segs.forEach(function(g){g.t.split(" ").forEach(function(w,i,a){if(w)words.push({w:w,b:g.b,sp:i<a.length-1})})});
+    var lines=[[]],cx=0;words.forEach(function(wd){fnt(wd.b?700:400,s);var ww=x.measureText(wd.w).width,sp=x.measureText(" ").width;if(cx+ww>mw&&lines[lines.length-1].length){lines.push([]);cx=0}wd.x=cx;lines[lines.length-1].push(wd);cx+=ww+(wd.sp?sp:0)});
+    if(!dry)lines.forEach(function(ln,i){ln.forEach(function(wd){fnt(wd.b?700:400,s);x.fillStyle=wd.b&&!col.b?AZ:(col.c||col);x.fillText(wd.w,lx+wd.x,y+i*lh)})});return y+(lines.length-1)*lh}
   x.textBaseline="alphabetic";x.fillStyle=INK;fnt(700,29);x.fillText("COMUNICADO",L,181.97);
   var s=fit(o.nome,700,21,R-L);x.fillStyle=INK;x.fillText(o.nome,L,208.97);
   var y=para([{t:o.tit,b:1}],243.97,12.5,16,AZ),d=y-243.97;
@@ -1653,7 +1650,23 @@ function comCanvas(o,sc){return comImgs().then(function(im){
   x.fillStyle=INK;fnt(700,17.5);x.fillText(o.saud,L,302.97+d);
   y=para([{t:"No dia "},{t:o.data,b:1},{t:", a partir das "+o.hora+", realizaremos os serviços de "+o.serv+" "+o.onde+"."}],332.97+d,11.6,18,INK);
   o.ps.forEach(function(p){y=para([{t:p}],y+24,11.6,18,INK)});
+  /* Observação em destaque, antes do Atenciosamente */
+  var obs=(o.obs||"").split(/\n+/).map(function(t){return t.trim()}).filter(Boolean);
+  if(obs.length){var bx=L+16,bw=R-L-30,top=y+22,yy=top+36,ys=[];
+    obs.forEach(function(t,i){ys.push(yy);yy=para([{t:t,b:1}],yy,11.6,17,INK,bx,bw,true)+(i<obs.length-1?22:0)});
+    var bh=yy-top+16;x.fillStyle="#DCE6F7";x.beginPath();if(x.roundRect)x.roundRect(L,top,R-L,bh,8);else x.rect(L,top,R-L,bh);x.fill();
+    x.fillStyle=AZ;x.fillRect(L,top,4,bh);fnt(700,10.5);x.fillText("OBSERVAÇÃO IMPORTANTE",bx,top+18);
+    obs.forEach(function(t,i){para([{t:t,b:1}],ys[i],11.6,17,{c:INK,b:1},bx,bw)});y=top+bh-20}
   fnt(400,11);x.fillStyle=INK;x.fillText("Atenciosamente,",L,y+44);x.fillText("Equipe Monte Fuji",L,y+60);
+  /* fundo: o mascote encolhe (ancorado embaixo) quando o texto fica comprido */
+  mx.fillStyle="#B5B5B5";mx.fillRect(0,0,W,H);
+  if(im[0])mx.drawImage(im[0],12.26,12.04,571.71,99.51);
+  mx.fillStyle="#EEEEEE";mx.beginPath();if(mx.roundRect)mx.roundRect(12.26,119.97,571.71,656.25,12);else mx.rect(12.26,119.97,571.71,656.25);mx.fill();
+  var mh=Math.max(110,Math.min(270.34,(776.22-(y+60)-14)/.73)),mw2=571.71*mh/270.34;
+  if(im[1]){mx.drawImage(im[1],12.26,505.88,571.71,270.34);
+    if(mh<270.34){var cw=560/1400;mx.fillStyle="#EEEEEE";mx.fillRect(12.26,505.88,571.71*cw,270.34);mx.drawImage(im[1],0,0,1400*cw,662,12.26,776.22-mh,mw2*cw,mh)}}
+  if(im[2])mx.drawImage(im[2],12.26,782.53,571.71,47.15);
+  mx.setTransform(1,0,0,1,0,0);mx.drawImage(tc,0,0);
   return cv})}
 /* PDF de uma página com a imagem JPEG ocupando o A4 */
 function pdfJpeg(jpg,w,h){var te=new TextEncoder(),parts=[],len=0,offs=[];
@@ -1673,6 +1686,7 @@ function openComunicado(e){
     +'<div class="fld"><label for="cmPub">Para quem</label><select id="cmPub"><option value="cond">Condôminos</option><option value="col">Colaboradores</option></select></div>'
     +'<div class="fld"><label for="cmData">Data do serviço</label><input id="cmData" type="date"></div>'
     +'<div class="fld"><label for="cmHora">A partir das</label><select id="cmHora">'+[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(function(h){return '<option value="'+h+'">'+h+'h</option>'}).join("")+'</select></div>'
+    +'<div class="fld"><label for="cmObs">Observação <small>· opcional, sai em destaque</small></label><textarea id="cmObs" rows="3" placeholder="Ex.: o acesso à garagem ficará fechado das 14h às 16h"></textarea></div>'
     +'<p class="sub" style="margin:0">O serviço e o texto de recomendações vêm do agendamento.</p></div>'
     +'<div class="cmprev"><img id="cmPrev" alt="Prévia do comunicado"></div></div>'
     +'<div class="acts"><button class="ghost" type="button" data-cmx>Cancelar</button><button class="cta rq" type="button" id="cmGo">'+ic("down",13)+' Baixar comunicado</button></div></div></div>');
@@ -1685,10 +1699,10 @@ function openComunicado(e){
           saveFile("comunicado-"+slug(o.nome)+"-"+o.date+".pdf",pdfJpeg(u,cv.width,cv.height),function(ok,code){bt.disabled=false;if(ok){m.hidden=true;toast("Comunicado baixado.")}else if(code!=="declined")toast("Não foi possível baixar o arquivo aqui.")})})}
     });
   }
-  function cur(){return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,date:$("#cmData").value||e.date,h:+$("#cmHora").value,svs:m._svs}}
+  function cur(){return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,date:$("#cmData").value||e.date,h:+$("#cmHora").value,obs:$("#cmObs").value,svs:m._svs}}
   function prev(){var o=cur();comCanvas(comDados(o),.9).then(function(cv){$("#cmPrev").src=cv.toDataURL("image/png")})}
   m._svs=e.svs||[e.s];$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
-  $("#cmData").value=e.date;$("#cmHora").value=String(e.h);m.hidden=false;prev();
+  $("#cmData").value=e.date;$("#cmObs").value="";$("#cmHora").value=String(e.h);m.hidden=false;prev();
 }
 
 </script>
