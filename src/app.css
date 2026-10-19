@@ -635,3 +635,26 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .cmprev{background:#B5B5B5;border-radius:10px;overflow:hidden;aspect-ratio:595/842}
 .cmprev img{width:100%;height:100%;display:block}
 @media (max-width:640px){.cmg{grid-template-columns:1fr}.cmprev{max-width:260px;justify-self:center;width:100%}}
+/* Aniversários em destaque */
+.mgrid .d.bday:not(.out){background:#F8EFD2;box-shadow:inset 0 0 0 2px var(--legado)}
+.bdc{color:#fff!important;background:var(--legado)!important;font-weight:700!important;font-size:10.5px!important;padding:3px 6px!important;border-radius:5px}
+.bdc svg{stroke:#fff}
+@media (max-width:760px){.bdc{font-size:0!important;padding:0!important;height:6px}}
+.wk .hd.bday{background:#F8EFD2;box-shadow:inset 0 -3px 0 var(--legado)}
+.bdh{background:var(--legado);color:#fff!important;border-radius:5px;padding:2px 5px;font-weight:700!important}
+.bdh svg{stroke:#fff}
+.yr .g i.bd{background:var(--legado)!important;color:#fff!important;box-shadow:none!important}
+.bdbar{background:#F8EFD2!important;border:1.5px solid var(--legado)!important}
+.bdcard{border:1.5px solid var(--legado);background:linear-gradient(180deg,#FBF5E3,var(--branco) 70%)}
+.bdcard h4{display:flex;align-items:center;gap:6px;color:var(--legado-700)}
+.bdl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.bdl li{display:flex;align-items:center;gap:10px;padding:6px;border-radius:10px;cursor:pointer}
+.bdl li:hover{background:var(--legado-50)}
+.bdl li.ps{opacity:.55}
+.bdl li.hj{background:var(--legado);color:#fff}
+.bdl li.hj small{color:#fff}
+.bdd{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:var(--legado-50);color:var(--legado-700);line-height:1;flex:none}
+.bdd b{font-size:14px}.bdd small{font-size:9px;text-transform:uppercase}
+.bdl li.hj .bdd{background:#fff}
+.bdl .grow b{display:block;font-size:12.5px}.bdl .grow small{display:block;font-size:10.5px;color:var(--cinza-600,#777)}
+.bdl li.hj .bdd small{color:var(--legado-700)}
