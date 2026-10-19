@@ -401,7 +401,7 @@ document.addEventListener("click",function(e){
   var t=e.target.closest("[data-t]");if(t){toast(t.dataset.t);return}
   if(e.target.closest("[data-ai]")){AI.open();return}
 });
-$("#tlogo").src=LOGO;refreshSide();initAI();
+$("#tlogo").src=LOGO;syncVenc();refreshSide();initAI();
 $("#bell").addEventListener("click",function(){var a=avisos();toast(a.length?"Avisos: "+a.join(" · ")+".":"Nenhum aviso no momento.")});
 var _sv=null;function persist(){clearTimeout(_sv);_sv=setTimeout(function(){dbSave();refreshSide()},250)}
 ["click","change","drop","focusout","keydown"].forEach(function(ev){document.addEventListener(ev,persist)});

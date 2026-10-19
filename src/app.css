@@ -609,3 +609,22 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .cpb.ok{background:var(--ok-50);color:var(--ok);border-color:var(--ok)}
 .bkh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
 .bkh b{font-size:13px;font-weight:600;color:var(--fluxo)}
+/* Vencimento de garantia */
+.mgrid .d.venc{box-shadow:inset 0 0 0 2px #D64545;background:#FDEDED}
+.vencb,.vench{display:flex;align-items:center;gap:4px;width:100%;font:inherit;font-size:10.5px;font-weight:700;color:#fff;background:#D64545;border:0;border-radius:5px;padding:3px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;animation:vpulse 2s ease-in-out infinite}
+.vench{margin-top:3px;font-size:9.5px;justify-content:center}
+.vencb svg,.vench svg{flex:none}
+@keyframes vpulse{50%{box-shadow:0 0 0 3px rgba(214,69,69,.25)}}
+@media (prefers-reduced-motion:reduce){.vencb,.vench{animation:none}}
+@media (max-width:760px){.vencb{font-size:0;padding:0;height:6px}.vencb svg{display:none}}
+.vencbar{display:flex;align-items:center;gap:10px;background:#FDEDED;border:1px solid #F2B8B8;color:#B42323;border-radius:11px;padding:9px 11px;cursor:pointer}
+.vencbar b{display:block;font-size:12px;font-weight:700}
+.vencbar small{display:block;font-size:10.5px;opacity:.9}
+.yr .g i.vc{background:#D64545!important;color:#fff;font-weight:700}
+.lg-vc{display:inline-flex;align-items:center;gap:5px;color:#B42323;font-weight:600}
+.tk.vk{border:1.5px solid #D64545;background:#FFF7F7}
+.tk.vk .tt b{color:#B42323}
+.vmsg{background:#fff;border:1px dashed #F2B8B8;border-radius:9px;padding:8px;display:grid;gap:6px}
+.vmsg small{font-size:10px;font-weight:700;color:#B42323;text-transform:uppercase;letter-spacing:.03em}
+.vmsg p{margin:0;font-size:11.5px;line-height:1.45;user-select:text;cursor:text}
+.vmsg button{justify-self:start}
