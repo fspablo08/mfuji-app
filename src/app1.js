@@ -192,12 +192,14 @@ var IMP_CAMPOS=[
   ["nome","Nome do cliente",["nome","nome do cliente","cliente","nome / razao social","nome/razao social","nome ou razao social"]],
   ["fantasia","Nome fantasia",["nome fantasia","fantasia"]],
   ["razao","Razão social",["razao social","razao"]],
-  ["doc","CNPJ / CPF",["cpf/cnpj","cnpj/cpf","cpf / cnpj","cnpj / cpf","cnpj","cpf","documento","cpf ou cnpj","cnpj ou cpf"]],
+  ["doc","CNPJ / CPF",["cpf/cnpj","cnpj/cpf","cpf / cnpj","cnpj / cpf","cnpj","documento","cpf ou cnpj","cnpj ou cpf"]],
+  ["cpf","CPF (coluna separada)",["cpf"]],
   ["tipo","Tipo de pessoa",["tipo de pessoa","tipo pessoa","pessoa","tipo"]],
   ["contato","Contato",["contato","nome do contato","pessoa de contato","responsavel","contato principal"]],
   ["tel","Telefone",["telefone","telefone comercial","fone","telefone 1","telefone principal","tel"]],
   ["cel","Celular",["celular","telefone celular","whatsapp","telefone 2"]],
   ["email","E-mail",["e-mail","email","e-mail principal","email principal","emails","e-mails"]],
+  ["email2","E-mail do contato",["e-mail contato","email contato","e-mail do contato","email do contato"]],
   ["rua","Endereço (rua)",["endereco","logradouro","rua","endereco completo"]],
   ["num","Número",["numero","no","n","nro"]],
   ["comp","Complemento",["complemento"]],
@@ -247,20 +249,21 @@ function impBuild(rows,hdr,map){
     var cid=g(r,"cidade")+(g(r,"uf")?"/"+g(r,"uf").toUpperCase():"");
     var loc=[g(r,"bairro"),cid].filter(Boolean).join(", ");
     var tels=[g(r,"tel"),g(r,"cel")].filter(Boolean).map(impTel).filter(function(t,i,a){return a.indexOf(t)===i});
-    var o={nome:nome,razao:g(r,"razao")||g(r,"nome")||nome,doc:impDoc(g(r,"doc"),tipo),tipo:tipo,contato:g(r,"contato"),tel:tels.join(" / "),email:g(r,"email").split(/[;,\s]+/).filter(Boolean)[0]||"",end:[rua,loc].filter(Boolean).join(" · ")};
+    var o={nome:nome,razao:g(r,"razao")||g(r,"nome")||nome,doc:impDoc(g(r,"doc")||g(r,"cpf"),g(r,"doc")?tipo:"Física"),tipo:tipo,contato:g(r,"contato"),tel:tels.join(" / "),email:(g(r,"email")||g(r,"email2")).split(/[;,\s]+/).filter(Boolean)[0]||"",end:[rua,loc].filter(Boolean).join(" · ")};
     o.email=o.email.toLowerCase();o.perfil=impPerfil(o);out.push(o);
   });
   return out;
 }
-/* separa novos, já cadastrados (mesmo CNPJ/CPF ou mesmo nome) e linhas sem nome */
+/* separa novos, já cadastrados (mesmo nome) e linhas sem nome;
+   o mesmo CNPJ com outro nome conta como outra unidade do cliente */
 function impPlan(list){
-  var byDoc={},byNome={},seen={},plan={novos:[],existentes:[],semNome:0,repetidos:0};
-  CLIENTES.forEach(function(c){var d=digits(c.doc);if(d.length>=11)byDoc[d]=c;byNome[norm(c.nome)]=c});
+  var byNome={},seen={},plan={novos:[],existentes:[],semNome:0,repetidos:0};
+  CLIENTES.forEach(function(c){byNome[norm(c.nome)]=c});
   list.forEach(function(o){
     if(!o.nome){plan.semNome++;return}
-    var d=digits(o.doc),k=d.length>=11?"d"+d:"n"+norm(o.nome);
+    var k=digits(o.doc)+"|"+norm(o.nome);
     if(seen[k]){plan.repetidos++;return}seen[k]=1;
-    var c=(d.length>=11&&byDoc[d])||byNome[norm(o.nome)];
+    var c=byNome[norm(o.nome)];
     if(c)plan.existentes.push([c,o]);else plan.novos.push(o);
   });
   return plan;
@@ -333,7 +336,7 @@ function openImpModal(done){
       +(p.existentes.length?'<span class="pill ne">'+p.existentes.length+' já cadastrado'+(p.existentes.length===1?'':'s')+'</span>':'')
       +(p.semNome?'<span class="pill al">'+p.semNome+' sem nome</span>':'')+(p.repetidos?'<span class="pill al">'+p.repetidos+' repetido'+(p.repetidos===1?'':'s')+' na planilha</span>':'')
       +'<span class="mut">'+esc(S.file)+'</span></div>'
-      +(p.existentes.length?'<p class="sub">Clientes já cadastrados (mesmo CNPJ/CPF ou mesmo nome) não são duplicados: só os campos vazios deles são completados.</p>':'')
+      +(p.existentes.length?'<p class="sub">Clientes já cadastrados com o mesmo nome não são duplicados: só os campos vazios deles são completados.</p>':'')
       +(p.novos.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Cliente</th><th>CNPJ / CPF</th><th>Perfil</th><th>Telefone</th><th>Cidade</th></tr></thead><tbody>'
         +p.novos.slice(0,5).map(function(o){return '<tr><td><b>'+esc(o.nome)+'</b><small>'+esc(o.email)+'</small></td><td class="num">'+esc(o.doc||"—")+'</td><td>'+o.perfil+'</td><td>'+esc(o.tel||"—")+'</td><td>'+esc(o.end.split("·").pop().trim()||"—")+'</td></tr>'}).join("")
         +'</tbody></table></div>'+(p.novos.length>5?'<p class="sub">E mais '+(p.novos.length-5)+'. O perfil é sugerido pelo nome e pelo tipo de pessoa; dá para mudar depois na ficha.</p>':'')
