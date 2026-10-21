@@ -134,7 +134,12 @@ function bindPick(inp,onPick){
   });
   ul.addEventListener("mousedown",function(e){e.preventDefault();var li=e.target.closest("li");if(li)choose(+li.dataset.i)});
 }
-var _cliCb=null;
+var _cliCb=null,_cliEdit=null;
+/* edição do cadastro: mesma janela do novo cliente, já preenchida */
+function editCli(c,cb){openCliModal("",cb);_cliEdit=c;var m=$("#cliModal");$("#ncT").textContent="Editar cliente";$("#ncSave").textContent="Salvar alterações";$("#ncDel").hidden=false;
+  function vv(x){return x&&x!=="—"?x:""}
+  $("#ncDoc").value=vv(c.doc);$("#ncRaz").value=vv(c.razao);$("#ncNome").value=c.nome;$("#ncPer").value=c.perfil||"Condomínio";$("#ncCon").value=vv(c.contato);$("#ncTel").value=vv(c.tel);$("#ncEm").value=vv(c.email);$("#ncEnd").value=vv(c.end);
+  $("#ncPath").textContent=c.nome;$("#ncSt").innerHTML='<span class="mut">Altere o que precisar e salve.</span>';setTimeout(function(){$("#ncNome").focus()},40)}
 function digits(s){return String(s||"").replace(/\D/g,"")}
 function openCliModal(nome,cb){
   var m=$("#cliModal");
@@ -151,13 +156,20 @@ function openCliModal(nome,cb){
     +'<div class="fld full"><label for="ncEm">E-mail</label><input id="ncEm" type="email"></div>'
     +'<div class="fld full"><label for="ncEnd">Endereço</label><input id="ncEnd" placeholder="Rua, número · bairro, cidade/UF"></div></div>'
     +'<div class="drive">'+ic("drive",15)+'Pasta no Drive: <code>Clientes / <span id="ncPath">…</span></code></div>'
-    +'<div class="acts"><button class="ghost" type="button" data-ncx>Cancelar</button><button class="cta rq" type="button" id="ncSave">Salvar cliente</button></div></div>';
+    +'<div class="acts"><button class="ghost" type="button" id="ncDel" hidden>Excluir cliente</button><span style="flex:1"></span><button class="ghost" type="button" data-ncx>Cancelar</button><button class="cta rq" type="button" id="ncSave">Salvar cliente</button></div></div>';
     document.body.appendChild(m);
     m.addEventListener("click",function(e){
       if(e.target===m||e.target.closest("[data-ncx]")){m.hidden=true;return}
       if(e.target.closest("#ncBusca")){busca(true);return}
+      var dl=e.target.closest("#ncDel");if(dl&&_cliEdit){
+        if(!dl.dataset.ok){dl.dataset.ok="1";dl.textContent="Confirmar exclusão";setTimeout(function(){delete dl.dataset.ok;dl.textContent="Excluir cliente"},4000);return}
+        var cx=_cliEdit;CLIENTES.splice(CLIENTES.indexOf(cx),1);m.hidden=true;toast(cx.nome+" excluído. Agendamentos e OS dele continuam no histórico.");if(_cliCb)_cliCb(null);return}
       if(e.target.closest("#ncSave")){
         var n=$("#ncNome").value.trim();if(!n){toast("Informe o nome do cliente.");$("#ncNome").focus();return}
+        if(_cliEdit){var ce=_cliEdit,velho=ce.nome;ce.nome=n;ce.razao=$("#ncRaz").value.trim()||n;ce.doc=$("#ncDoc").value.trim()||"—";ce.perfil=$("#ncPer").value;ce.contato=$("#ncCon").value.trim()||"—";ce.tel=$("#ncTel").value.trim()||"—";ce.email=$("#ncEm").value.trim()||"—";ce.end=$("#ncEnd").value.trim()||"—";
+          /* agenda e OS ligam pelo nome: acompanham a troca de nome */
+          if(velho!==n){EVENTS.forEach(function(x){if(x.cli===velho)x.cli=n});OSL.forEach(function(o){if(o[2]===velho)o[2]=n});if(ce.pasta==="Clientes / "+velho)ce.pasta="Clientes / "+n}
+          m.hidden=true;toast("Cadastro de "+n+" atualizado.");if(_cliCb)_cliCb(ce);return}
         var c={id:nid(CLIENTES),nome:n,razao:$("#ncRaz").value.trim()||n,doc:$("#ncDoc").value.trim()||"—",perfil:$("#ncPer").value,contato:$("#ncCon").value.trim()||"—",tel:$("#ncTel").value.trim()||"—",email:$("#ncEm").value.trim()||"—",end:$("#ncEnd").value.trim()||"—",hist:[],gar:[],pasta:"Clientes / "+n};
         CLIENTES.push(c);if(DRIVE_FOLDERS.indexOf(n)<0)DRIVE_FOLDERS.push(n);m.hidden=true;toast(c.nome+" cadastrado.");if(_cliCb)_cliCb(c);
         if(VIEWS.cli&&VIEWS.cli.refresh)VIEWS.cli.refresh();
@@ -168,7 +180,7 @@ function openCliModal(nome,cb){
   function busca(force){
     var d=digits($("#ncDoc").value),st=$("#ncSt");
     if(d.length!==14){if(force)st.innerHTML='<span class="pill er">CNPJ incompleto</span> <span class="mut">São 14 números.</span>';return}
-    var ja=CLIENTES.find(function(c){return digits(c.doc)===d});
+    var ja=CLIENTES.find(function(c){return digits(c.doc)===d&&c!==_cliEdit});
     if(ja){st.innerHTML='<span class="pill al">Já cadastrado</span> <span class="mut">Este CNPJ é de '+ja.nome+'.</span>';return}
     st.innerHTML='<span class="spin"></span><span class="mut">Consultando a Receita Federal…</span>';
     consultaCNPJ(d,function(err,r){
@@ -179,7 +191,7 @@ function openCliModal(nome,cb){
       $("#ncCon").focus();
     });
   }
-  _cliCb=cb||null;
+  _cliCb=cb||null;_cliEdit=null;$("#ncT").textContent="Novo cliente";$("#ncSave").textContent="Salvar cliente";$("#ncDel").hidden=true;
   $$("input",m).forEach(function(i){i.value="";i.classList.remove("auto")});$("#ncSt").innerHTML='<span class="mut">Digite os 14 números do CNPJ: razão social, endereço e telefone vêm da Receita Federal.</span>';
   var dd=digits(nome);
   if(dd.length>=11&&dd.length===String(nome).replace(/[\s.\/-]/g,"").length){$("#ncDoc").value=nome;$("#ncPath").textContent="…";m.hidden=false;if(dd.length===14)busca();setTimeout(function(){$("#ncDoc").focus()},30);return}
@@ -582,7 +594,7 @@ VIEWS.notas=function(v){
     if(e.target.type==="date"){var t2=tk(e.target);t2.due=e.target.value;render();toast(t2.due?"Data definida: "+dmy(t2.due)+".":"Data removida.")}
   });
   v.addEventListener("click",function(e){
-    var a=e.target.closest("[data-add]");if(a){var id=nid(TAREFAS);TAREFAS.push({id:id,col:a.dataset.add,t:"Nova tarefa",d:"",due:a.dataset.add==="today"?TD:"",who:"PB",done:a.dataset.add==="done"});render();var el2=$('.tk[data-id="'+id+'"] .tt b',v);if(el2){el2.contentEditable="true";el2.focus();document.execCommand&&document.execCommand("selectAll",false,null)}return}
+    var a=e.target.closest("[data-add]");if(a){var id=nid(TAREFAS);TAREFAS.push({id:id,col:a.dataset.add,t:"Nova tarefa",d:"",due:a.dataset.add==="today"?TD:"",who:EU.iniciais||"MF",done:a.dataset.add==="done"});render();var el2=$('.tk[data-id="'+id+'"] .tt b',v);if(el2){el2.contentEditable="true";el2.focus();document.execCommand&&document.execCommand("selectAll",false,null)}return}
     if(e.target.closest("[data-cpmsg]")){var tm=tk(e.target),bt=e.target.closest("[data-cpmsg]");copyText(tm.msg,function(ok){if(ok){bt.innerHTML=ic("chk",12)+" Copiada";toast("Mensagem copiada. É só colar no WhatsApp do cliente.")}else toast("Não deu para copiar. Selecione o texto e use Ctrl+C.")});return}
     if(e.target.closest("#moveLate")){TAREFAS.forEach(function(t){if(isLate(t))t.col="today"});render();toast("Tarefas atrasadas movidas para Hoje.");return}
     if(e.target.closest("[data-rm]")){var t=tk(e.target);TAREFAS.splice(TAREFAS.indexOf(t),1);render();toast("Nota apagada: "+t.t);return}

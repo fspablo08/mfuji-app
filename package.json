@@ -1,0 +1,15 @@
+{
+  "name": "mfuji-app",
+  "private": true,
+  "description": "Sistema interno da Monte Fuji (Cloudflare Worker + banco D1)",
+  "scripts": {
+    "build": "python3 build.py",
+    "dev": "python3 build.py && wrangler dev",
+    "migrar:local": "wrangler d1 migrations apply mfuji-db --local",
+    "migrar:producao": "wrangler d1 migrations apply mfuji-db --remote",
+    "test": "node test/e2e.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.3"
+  }
+}
