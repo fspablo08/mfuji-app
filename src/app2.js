@@ -96,6 +96,7 @@ VIEWS.os=function(v){
     if(ev){$("#oSv").value=(ev.svs||[ev.s]).join(" e ");$("#oD").value=ev.date;$("#oObs").value=ev.obs||"";toast("OS preenchida com os dados do agendamento.")}upd()};
   bindPick($("#oCli"),function(){upd()});
   table();upd();
+  VIEWS.os.show=function(){table()};
 };
 
 /* ===== E-MAILS ===== */
@@ -187,7 +188,7 @@ VIEWS.cli=function(v){
       +(em.length?em.map(function(m){return '<li data-em="'+m.id+'" class="lk"><span class="sq">'+ic(m.f==="sent"?"reply":"mail",13)+'</span><span class="grow"><b>'+m.ass+'</b><small>'+(m.f==="sent"?"Enviado · ":"Recebido · ")+m.data+' · '+m.cx+'@</small></span>'+(m.st==="responder"?'<span class="pill er">A responder</span>':m.st==="pendente"?'<span class="pill al">Aguardando</span>':'')+'</li>'}).join(""):'<li class="mut">Nenhum e-mail com este cliente.</li>')+'</ul></div>'
     +'</div>'
     +'<div class="c4" style="display:flex;flex-direction:column;gap:10px">'
-     +'<div class="card"><div class="ch"><h4>Cadastro</h4><button class="ghost" type="button" data-t="Abriria a edição do cadastro.">Editar</button></div><div class="kv2 one"><div><small>Razão social</small><span>'+c.razao+'</span></div><div><small>CNPJ / CPF</small><span>'+c.doc+'</span></div><div><small>Contato</small><span>'+c.contato+' · '+c.tel+'</span></div><div><small>E-mail</small><span>'+c.email+'</span></div><div><small>Endereço</small><span>'+c.end+'</span></div></div></div>'
+     +'<div class="card"><div class="ch"><h4>Cadastro</h4><button class="ghost" type="button" data-cedit>Editar</button></div><div class="kv2 one"><div><small>Razão social</small><span>'+c.razao+'</span></div><div><small>CNPJ / CPF</small><span>'+c.doc+'</span></div><div><small>Contato</small><span>'+c.contato+' · '+c.tel+'</span></div><div><small>E-mail</small><span>'+c.email+'</span></div><div><small>Endereço</small><span>'+c.end+'</span></div></div></div>'
      +'<div class="card"><div class="ch"><h4>Garantias</h4></div>'+(gs.length?gs.map(function(x){var g=x[0],i=x[1];return '<div style="display:grid;gap:5px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><b style="font-weight:600">'+(SERV[g[0]]?SERV[g[0]].sh:g[0])+' · '+garTxtDias(g[2])+'</b><span class="'+(i.left<0?'mut':'')+'" style="white-space:nowrap">'+(i.left<0?'Encerrada '+dmy(i.fim).slice(0,5):'até '+dmy(i.fim))+'</span></div><div class="gbar"><i style="width:'+i.pct+'%;'+(i.left<0?'background:#CAC9C5':i.left<=30?'background:var(--alerta)':'')+'"></i></div></div>'}).join(""):'<p class="mut txt">Nenhuma garantia registrada.</p>')+'</div>'
      +'<div class="card"><div class="ch"><h4>Agenda</h4><a class="ghost" href="#agenda">Abrir</a></div><ul class="ls">'+(pv.length?pv.slice(0,4).map(function(e){return '<li><span class="tm">'+dmy(e.date).slice(0,5)+'</span><span class="bar-t" style="background:'+SERV[e.s].c+'"></span><span class="grow"><b>'+svShort(e)+'</b><small>'+hh(e.h)+' · '+garTxt(e.gar)+'</small></span></li>'}).join(""):'<li class="mut">Nenhuma visita agendada.</li>')+'</ul></div>'
      +'<div class="card"><div class="ch"><h4>Pasta no Drive</h4><span class="src">Google Drive</span></div>'+(c.pasta?'<div class="drive" style="margin:0">'+ic("drive",15)+'<code>Drive / '+c.pasta+'</code></div><ul class="fls">'+fs.slice(0,5).map(function(x){return '<li><span class="ft '+(x[2]==="OS"?"os":"ce")+'">PDF</span><span class="grow">'+x[0]+'</span><span class="sub">'+dmy(x[1]).slice(0,5)+'</span></li>'}).join("")+'</ul>':'<p class="mut txt">Nenhuma pasta vinculada.</p><button class="ghost" type="button" data-clink>Vincular pasta do Drive</button>')+'</div>'
@@ -201,6 +202,7 @@ VIEWS.cli=function(v){
   v.addEventListener("click",function(e){
     var r=e.target.closest("tr.cl");if(r){CLI_SEL=+r.dataset.id;CLI_OPEN=true;prof();return}
     if(e.target.closest("[data-cback]")){CLI_OPEN=false;list();return}
+    if(e.target.closest("[data-cedit]")){var ce=CLIENTES.find(function(x){return x.id===CLI_SEL});if(ce)editCli(ce,function(c){if(!c)CLI_OPEN=false;render()});return}
     var f=e.target.closest(".filt button");if(f){$$(".filt button",v).forEach(function(b){b.setAttribute("aria-pressed",b===f?"true":"false")});st.p=f.textContent;table();return}
     if(e.target.closest("[data-impcli]")){openImpModal(function(){CLI_OPEN=false;list()});return}
     if(e.target.closest("[data-newcli]")){openCliModal(digits(st.q).length===14?st.q:"",function(c){CLI_SEL=c.id;CLI_OPEN=true;prof()});return}
@@ -309,11 +311,13 @@ VIEWS.rec=function(v){
     if(e.target.closest("[data-dpago]")){r.pago=TD;all();toast("Pagamento de "+brl(r.valor)+" registrado.");return}
   });
   all();
+  VIEWS.rec.show=all;
 };
 
 /* ===== FUNCIONÁRIOS ===== */
 var FUN_SEL=0;
 VIEWS.func=function(v){
+  var fEd=null;
   function asoSt(f){if(!f.aso)return ['ne','ASO não informado'];var d=diffDays(f.aso,TD);return d<0?['er','ASO vencido']:d<=30?['al','ASO em '+d+' dias']:['ok','ASO em dia']}
   v.innerHTML='<div class="grid">'
   +'<div class="card c12" style="padding:12px"><div class="kp" style="--n:4">'
@@ -328,11 +332,11 @@ VIEWS.func=function(v){
    +'<div class="fld full"><label for="n1">Nome completo</label><input id="n1"></div><div class="fld"><label for="n2">CPF</label><input id="n2" inputmode="numeric" placeholder="000.000.000-00"></div><div class="fld"><label for="n3">RG</label><input id="n3"></div><div class="fld"><label for="n13">Data de nascimento</label><input id="n13" type="date"></div><div class="fld"><label for="n14">Setor</label><select id="n14"><option>Campo</option><option>Escritório</option></select></div>'
    +'<div class="fld"><label for="n4">Função</label><input id="n4"></div><div class="fld"><label for="n15">ASO válido até</label><input id="n15" type="date"></div><div class="fld"><label for="n5">Admissão</label><input id="n5" type="date"></div><div class="fld"><label for="n6">Telefone</label><input id="n6" inputmode="tel"></div><div class="fld"><label for="n7">CNH</label><input id="n7" placeholder="Categoria e validade"></div>'
    +'<div class="fld"><label for="n8">Camisa</label><select id="n8"><option>P</option><option selected>M</option><option>G</option><option>GG</option></select></div><div class="fld"><label for="n9">Calça</label><input id="n9" inputmode="numeric" placeholder="42"></div><div class="fld"><label for="n10">Bota</label><input id="n10" inputmode="numeric" placeholder="41"></div><div class="fld"><label for="n11">Luva</label><select id="n11"><option>P</option><option selected>M</option><option>G</option></select></div>'
-   +'<div class="fld full"><label for="n12">Documentos</label><input id="n12" type="file" multiple></div></div><div class="acts"><button class="ghost" type="button" data-close>Cancelar</button><button class="cta rq" type="button" id="fSave">Salvar</button></div></div></div>';
+   +'<div class="fld full"><label for="n12">Documentos</label><input id="n12" type="file" multiple></div></div><div class="acts"><button class="ghost" type="button" id="fDel" hidden>Excluir colaborador</button><span style="flex:1"></span><button class="ghost" type="button" data-close>Cancelar</button><button class="cta rq" type="button" id="fSave">Salvar</button></div></div></div>';
   function rows(){$("#fnTb tbody").innerHTML=FUNC.map(function(f){var s=asoSt(f);return '<tr class="cl'+(f.id===FUN_SEL?' pick':'')+'" data-id="'+f.id+'"><td><span style="display:flex;gap:9px;align-items:center"><span class="av" style="background:var(--trigo);color:var(--fluxo)">'+f.nome.split(" ").map(function(w){return w[0]}).join("")+'</span><span><b>'+f.nome+'</b><small>'+f.setor+'</small></span></span></td><td>'+f.cargo+'</td><td class="num">'+dmy(f.adm)+'</td><td>'+(f.nasc?(f.nasc.slice(5,7)===TD.slice(5,7)?'<span class="pill go">'+ic("cake",11)+' '+dmy(f.nasc).slice(0,5)+'</span>':'<span class="num">'+dmy(f.nasc).slice(0,5)+'</span>'):'—')+'</td><td class="num">'+f.tam[0]+' · '+f.tam[1]+' · '+f.tam[2]+'</td><td><span class="pill '+s[0]+'">'+s[1]+'</span></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">Nenhum colaborador cadastrado ainda. Clique em Novo colaborador.</td></tr>';}
   function det(){
     var f=FUNC.find(function(x){return x.id===FUN_SEL})||FUNC[0];if(!f){$("#fnDet").innerHTML='<p class="mut">A ficha do colaborador aparece aqui: documentos, uniforme e EPIs. A data de nascimento coloca o aniversário na agenda.</p>';return}FUN_SEL=f.id;var s=asoSt(f),anos=Math.floor(diffDays(TD,f.adm)/365.25);
-    $("#fnDet").innerHTML='<div class="prof"><span class="bigav" style="background:var(--trigo);color:var(--fluxo)">'+f.nome.split(" ").map(function(w){return w[0]}).join("")+'</span><div style="flex:1;min-width:0"><h3>'+f.nome+'</h3><span class="sub">'+f.cargo+' · '+anos+' ano'+(anos===1?'':'s')+' de casa</span></div><button class="ghost" type="button" data-t="Abriria a edição do cadastro.">Editar</button></div>'
+    $("#fnDet").innerHTML='<div class="prof"><span class="bigav" style="background:var(--trigo);color:var(--fluxo)">'+f.nome.split(" ").map(function(w){return w[0]}).join("")+'</span><div style="flex:1;min-width:0"><h3>'+f.nome+'</h3><span class="sub">'+f.cargo+' · '+anos+' ano'+(anos===1?'':'s')+' de casa</span></div><button class="ghost" type="button" data-fedit>Editar</button></div>'
     +'<div class="kv2"><div><small>CPF</small><span>'+f.cpf+'</span></div><div><small>RG</small><span>'+f.rg+'</span></div><div><small>Nascimento</small><span>'+(f.nasc?dmy(f.nasc):'—')+'</span></div><div><small>Telefone</small><span>'+f.tel+'</span></div><div><small>Cidade</small><span>'+f.end+'</span></div><div><small>Admissão</small><span>'+dmy(f.adm)+'</span></div></div>'
     +'<div class="ch"><h4>Uniforme e EPIs</h4></div><div class="sizes"><div><small>Camisa</small><b>'+f.tam[0]+'</b></div><div><small>Calça</small><b>'+f.tam[1]+'</b></div><div><small>Bota</small><b>'+f.tam[2]+'</b></div><div><small>Luva</small><b>'+f.tam[3]+'</b></div></div>'
     +'<div class="ch"><h4>Documentos</h4><button class="ghost" type="button" data-t="Abriria o envio de documentos.">+ Enviar</button></div>'
@@ -341,8 +345,16 @@ VIEWS.func=function(v){
   }
   v.addEventListener("click",function(e){
     var r=e.target.closest("tr.cl");if(r){FUN_SEL=+r.dataset.id;$$("#fnTb tr",v).forEach(function(x){x.classList.toggle("pick",x===r)});det();if(window.innerWidth<1100)$("#fnDet").scrollIntoView({behavior:"smooth"});return}
-    if(e.target.closest("#fNew")){$$("#fnModal input",v).forEach(function(i){i.value=""});$("#n14").value="Campo";$("#fnModal").hidden=false;$("#n1").focus();return}
+    if(e.target.closest("#fNew")){fEd=null;$("#fnT").textContent="Novo colaborador";$("#fDel").hidden=true;$$("#fnModal input",v).forEach(function(i){i.value=""});$("#n14").value="Campo";$("#fnModal").hidden=false;$("#n1").focus();return}
+    if(e.target.closest("[data-fedit]")){fEd=FUNC.find(function(x){return x.id===FUN_SEL});if(!fEd)return;var f=fEd;function vv(x){return x&&x!=="—"?x:""}
+      $$("#fnModal input",v).forEach(function(i){i.value=""});$("#fnT").textContent="Editar colaborador";$("#fDel").hidden=false;
+      $("#n1").value=f.nome;$("#n2").value=vv(f.cpf);$("#n3").value=vv(f.rg);$("#n13").value=f.nasc||"";$("#n4").value=vv(f.cargo);$("#n15").value=f.aso||"";$("#n5").value=f.adm||"";$("#n6").value=vv(f.tel);$("#n7").value=vv(f.cnh);$("#n14").value=f.setor||"Campo";
+      var t=f.tam||[];if(t[0])$("#n8").value=t[0];$("#n9").value=vv(t[1]);$("#n10").value=vv(t[2]);if(t[3])$("#n11").value=t[3];$("#fnModal").hidden=false;$("#n1").focus();return}
+    var fd=e.target.closest("#fDel");if(fd&&fEd){if(!fd.dataset.ok){fd.dataset.ok="1";fd.textContent="Confirmar exclusão";setTimeout(function(){delete fd.dataset.ok;fd.textContent="Excluir colaborador"},4000);return}
+      FUNC.splice(FUNC.indexOf(fEd),1);toast(fEd.nome+" excluído.");fEd=null;FUN_SEL=0;$("#fnModal").hidden=true;rows();det();kpi();return}
     if(e.target.closest("#fSave")){var nm=$("#n1").value.trim();if(!nm){toast("Informe o nome.");return}if(!$("#n13").value){toast("Informe a data de nascimento.");$("#n13").focus();return}
+      if(fEd){var fe=fEd;fe.nome=nm;fe.cargo=$("#n4").value.trim()||"Colaborador";fe.setor=$("#n14").value;fe.adm=$("#n5").value||fe.adm;fe.cpf=$("#n2").value||"—";fe.rg=$("#n3").value||"—";fe.nasc=$("#n13").value;fe.tel=$("#n6").value||"—";fe.cnh=$("#n7").value||"—";fe.aso=$("#n15").value||"";fe.tam=[$("#n8").value,$("#n9").value||"—",$("#n10").value||"—",$("#n11").value];
+        fEd=null;$("#fnModal").hidden=true;rows();det();kpi();toast("Cadastro de "+nm+" atualizado.");return}
       var nf={id:nid(FUNC),nome:nm,cargo:$("#n4").value.trim()||"Colaborador",setor:$("#n14").value,adm:$("#n5").value||TD,cpf:$("#n2").value||"—",rg:$("#n3").value||"—",nasc:$("#n13").value,tel:$("#n6").value||"—",end:"—",cnh:$("#n7").value||"—",aso:$("#n15").value||"",nr:"—",tam:[$("#n8").value,$("#n9").value||"—",$("#n10").value||"—",$("#n11").value],obs:""};
       FUNC.push(nf);FUN_SEL=nf.id;$("#fnModal").hidden=true;rows();det();kpi();toast(nm+" cadastrado. O aniversário já aparece na agenda.");return}
     if(e.target.closest("[data-close]")||e.target===$("#fnModal")){$("#fnModal").hidden=true}
@@ -351,6 +363,7 @@ VIEWS.func=function(v){
     $("#fK1").textContent=FUNC.length;$("#fK1s").textContent=camp+" campo · "+(FUNC.length-camp)+" escritório";$("#fK2").textContent=ven.length;$("#fK2s").textContent=ven.map(function(f){return firstName(f.nome)}).join(" · ")||"Nenhum";$("#fK3").textContent=v30.length;$("#fK3s").textContent=v30.map(function(f){return firstName(f.nome)}).join(" · ")||"Nenhum";
     var b=FUNC.filter(function(f){return f.nasc&&f.nasc.slice(5,7)===TD.slice(5,7)}).sort(function(a,b){return a.nasc.slice(8)<b.nasc.slice(8)?-1:1});$("#fBdN").textContent=b.length;$("#fBdL").innerHTML=b.map(function(f){return firstName(f.nome)+' '+dmy(f.nasc).slice(0,5)}).join(" · ")||"—"}
   rows();det();kpi();
+  VIEWS.func.show=function(){rows();det();kpi()};
 };
 
 /* ===== CONFIGURAÇÕES ===== */
@@ -359,32 +372,20 @@ var EMPRESA=[["Razão social","Monte Fuji Dedetizadora e Desentupidora"],["CNPJ"
 function copyText(t,cb){function fb(){var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(x){}ta.remove();cb(ok)}
   try{navigator.clipboard.writeText(t).then(function(){cb(true)},fb)}catch(x){fb()}}
 VIEWS.cfg=function(v){
-  function salvo(){var t=null;try{t=localStorage.getItem("mfs-salvo")}catch(e){}return t?new Date(t).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}):"ainda nada salvo"}
   function render(){
-  var tot=CLIENTES.length+FUNC.length+OSL.length+TAREFAS.length+EVENTS.length+RECEBER.length;
   v.innerHTML='<div class="grid">'
   +'<div class="card c6"><div class="ch"><h4>Empresa</h4><span class="sub">Clique em copiar para colar onde precisar</span></div><div class="kv2 emp">'+EMPRESA.map(function(x,i){return '<div><span class="g"><small>'+x[0]+'</small><span>'+x[1]+'</span></span><button class="cpb" type="button" data-cp="'+i+'" aria-label="Copiar '+x[0]+'" title="Copiar">'+ic("doc",13)+'</button></div>'}).join("")+'</div></div>'
   +'<div class="card c6"><div class="ch"><h4>Dados bancários</h4><span class="sub">Para enviar aos clientes</span></div>'+BANCOS.map(function(b,bi){return '<div class="bkh"><b>'+b[0]+'</b><button class="ghost" type="button" data-cpall="'+bi+'">'+ic("doc",12)+' Copiar todos</button></div><div class="kv2 emp">'+b[1].map(function(x,i){return '<div><span class="g"><small>'+x[0]+'</small><span>'+x[1]+'</span></span><button class="cpb" type="button" data-cpb="'+bi+'-'+i+'" aria-label="Copiar '+x[0]+' '+b[0]+'" title="Copiar">'+ic("doc",13)+'</button></div>'}).join("")+'</div>'}).join("")+'</div>'
-  +'<div class="card c6"><div class="ch"><h4>Backup dos dados</h4><span class="pill in">Neste navegador</span></div>'
-   +'<p class="txt">Por enquanto, tudo o que você cadastra fica salvo neste navegador, neste computador. Baixe um backup com frequência: com o arquivo dá para restaurar os dados em outro computador ou depois de limpar o navegador.</p>'
-   +'<div class="kv2"><div><small>Registros salvos</small><span>'+tot+'</span></div><div><small>Último salvamento</small><span>'+salvo()+'</span></div></div>'
-   +'<div class="acts" style="justify-content:flex-start;flex-wrap:wrap"><button class="cta" type="button" id="bkDown">'+ic("down",13)+' Baixar backup</button><button class="ghost" type="button" id="bkUp">'+ic("up",13)+' Restaurar backup</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div></div>'
+  +'<div class="card c6" id="cfgBanco"></div>'
   +'<div class="card c6"><div class="ch"><h4>Integrações</h4><span class="sub">Próximas etapas</span></div>'
-   +[["CF","#B49B54","Cloudflare","Hospedagem do sistema","Conectado"],["R","#2F8F5B","Receita Federal","Consulta de CNPJ pela BrasilAPI","Conectado"],["D1","#B49B54","Banco de dados (Cloudflare D1)","Dados compartilhados entre a equipe","Próxima etapa"],["G","#3872CF","Google Drive","Pastas de clientes e OS em PDF","Não conectado"],["M","#C2413A","Gmail","3 caixas: atendimento, financeiro e comercial","Não conectado"],["CA","#253C8D","Conta Azul","Clientes importados por planilha (em Clientes); pagamentos ainda não","Por planilha"],["IA","#18275E","Assistente","Base de conhecimento da Monte Fuji","Aguardando conteúdo"]].map(function(x){return '<div class="intg"><span class="lg2" style="background:'+x[1]+'">'+x[0]+'</span><span class="grow"><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="pill '+(x[4]==="Conectado"?"ok":x[4]==="Próxima etapa"||x[4]==="Por planilha"?"in":"al")+'">'+x[4]+'</span></div>'}).join("")+'</div>'
-  +'<div class="card c6"><div class="ch"><h4>Usuários</h4></div><ul class="ls"><li><span class="av" style="background:var(--trigo);color:var(--fluxo)">PB</span><span class="grow"><b>Pablo</b><small>Administrador</small></span></li></ul><p class="sub">Login e permissões por usuário entram junto com o banco de dados compartilhado.</p></div></div>';
+   +[["CF","#B49B54","Cloudflare","Hospedagem do sistema","Conectado"],["R","#2F8F5B","Receita Federal","Consulta de CNPJ pela BrasilAPI","Conectado"],["D1","#B49B54","Banco de dados (Cloudflare D1)","Dados compartilhados entre a equipe","Conectado"],["G","#3872CF","Google Drive","Pastas de clientes e OS em PDF","Não conectado"],["M","#C2413A","Gmail","3 caixas: atendimento, financeiro e comercial","Não conectado"],["CA","#253C8D","Conta Azul","Clientes importados por planilha (em Clientes); pagamentos ainda não","Por planilha"],["IA","#18275E","Assistente","Base de conhecimento da Monte Fuji","Aguardando conteúdo"]].map(function(x){return '<div class="intg"><span class="lg2" style="background:'+x[1]+'">'+x[0]+'</span><span class="grow"><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="pill '+(x[4]==="Conectado"?"ok":x[4]==="Próxima etapa"||x[4]==="Por planilha"?"in":"al")+'">'+x[4]+'</span></div>'}).join("")+'</div>'
+  +'<div class="card c6" id="cfgUsu"></div></div>';
   }
   v.addEventListener("click",function(e){
     var all=e.target.closest("[data-cpall]");if(all){var bk=BANCOS[+all.dataset.cpall];copyText(bk[1].map(function(x){return x[0]+": "+x[1]}).join("\n"),function(ok){toast(ok?"Dados do "+bk[0]+" copiados.":"Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
     var cp=e.target.closest("[data-cp],[data-cpb]");if(cp){var it=cp.dataset.cp!==undefined?EMPRESA[+cp.dataset.cp]:(function(p){var b=BANCOS[+p[0]];return [b[1][+p[1]][0]+" "+b[0],b[1][+p[1]][1]]})(cp.dataset.cpb.split("-"));copyText(it[1],function(ok){if(ok){cp.classList.add("ok");cp.innerHTML=ic("chk",13);setTimeout(function(){cp.classList.remove("ok");cp.innerHTML=ic("doc",13)},1500);toast(it[0]+" copiado.")}else toast("Não consegui copiar. Selecione o texto e use Ctrl+C.")});return}
-    if(e.target.closest("#bkDown")){dbSave();saveFile("backup-monte-fuji-"+TD+".json",new Blob([JSON.stringify(dbDump(),null,1)],{type:"application/json"}),function(ok,code){if(ok)toast("Backup baixado.");else if(code!=="declined")toast("Não foi possível baixar o arquivo aqui.")});render();return}
-    if(e.target.closest("#bkUp")){$("#bkFile").click();return}
   });
-  v.addEventListener("change",function(e){
-    if(e.target.id!=="bkFile"||!e.target.files[0])return;var rd=new FileReader();
-    rd.onload=function(){try{var o=JSON.parse(rd.result);if(o.sistema!=="Monte Fuji")throw 0;DB_KEYS.forEach(function(k){if(Array.isArray(o[k])){window[k].length=0;Array.prototype.push.apply(window[k],o[k])}});dbSave();toast("Backup restaurado. Recarregando…");setTimeout(function(){location.reload()},900)}catch(x){toast("Este arquivo não é um backup do sistema Monte Fuji.")}};
-    rd.readAsText(e.target.files[0]);
-  });
-  VIEWS.cfg.show=render;
+  VIEWS.cfg.show=function(){render();bancoCard($("#cfgBanco"));usuariosCard($("#cfgUsu"))};
 };
 
 /* ===== CENTRAL DE AJUDA ===== */
@@ -393,7 +394,7 @@ VIEWS.help=function(v){
   +[["Como trago os clientes do Conta Azul?","No Conta Azul, abra Cadastros › Clientes e use Exportar. Aqui, em Clientes, clique em Importar do Conta Azul e escolha a planilha. Clientes com o mesmo nome não são duplicados, então dá para importar de novo quando quiser."],["Como gero uma ordem de serviço?","Em Ordens de serviço, escolha o cliente, preencha o serviço e clique em Registrar OS. Use Imprimir para gerar o PDF no modelo padrão."],["Como cadastro uma visita na agenda?","Em Agenda, clique em + Novo agendamento ou em Agendar numa das melhores datas sugeridas. Os campos definitivos ainda serão definidos."],["O assistente lê meus e-mails?","No sistema final, sim: ele lê a caixa da empresa para sugerir respostas. Nada é enviado sem você clicar em enviar."],["Onde vejo as garantias de um cliente?","Em Clientes, selecione o cliente. As garantias aparecem com a barra de tempo restante e a data de término."],["Os dados financeiros são atualizados sozinhos?","Sim, quando a Conta Azul estiver conectada. A sincronização prevista é a cada hora."]].map(function(f,i){return '<details class="faq"'+(i?'':' open')+'><summary>'+f[0]+'</summary><p>'+f[1]+'</p></details>'}).join("")+'</div>'
   +'<div class="c4" style="display:flex;flex-direction:column;gap:10px"><div class="card hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Falar com o suporte</span></div><b style="font-size:20px">atendimento@mfuji.com.br</b><p class="hs">(11) 3609-5222 · segunda a sábado</p></div>'
   +'<div class="card"><div class="ch"><h4>Atalhos</h4></div><ul class="ls"><li><span class="grow"><b style="font-weight:500">Abrir o assistente</b></span><span class="tag">Ctrl + J</span></li><li><span class="grow"><b style="font-weight:500">Fechar janelas</b></span><span class="tag">Esc</span></li><li><span class="grow"><b style="font-weight:500">Abrir um dia na agenda</b></span><span class="tag">Duplo clique</span></li></ul></div>'
-  +'<div class="card"><div class="ch"><h4>Versão</h4><span class="pill in">Primeira versão</span></div><p class="txt">v1.0 · em uso desde '+dmy(TD)+'. Dados salvos neste navegador; próximo passo: banco de dados compartilhado no Cloudflare.</p></div></div></div>';
+  +'<div class="card"><div class="ch"><h4>Versão</h4><span class="pill ok">Versão 2</span></div><p class="txt">v2.0 · em uso desde '+dmy(TD)+'. Dados no banco compartilhado da Cloudflare, com login individual e atualização automática entre a equipe.</p></div></div></div>';
 };
 
 /* ===== início ===== */
@@ -406,7 +407,7 @@ $("#tlogo").src=LOGO;syncVenc();refreshSide();initAI();
 $("#bell").addEventListener("click",function(){var a=avisos();toast(a.length?"Avisos: "+a.join(" · ")+".":"Nenhum aviso no momento.")});
 var _sv=null;function persist(){clearTimeout(_sv);_sv=setTimeout(function(){dbSave();refreshSide()},250)}
 ["click","change","drop","focusout","keydown"].forEach(function(ev){document.addEventListener(ev,persist)});
-window.addEventListener("pagehide",dbSave);document.addEventListener("visibilitychange",function(){if(document.hidden)dbSave()});
+window.addEventListener("pagehide",function(){dbSave(true)});document.addEventListener("visibilitychange",function(){if(document.hidden)dbSave()});
 $("#burger").addEventListener("click",function(){$("#app").classList.add("nav-open")});
 $("#scrim").addEventListener("click",function(){$("#app").classList.remove("nav-open")});
 $("#gSearch").addEventListener("keydown",function(e){if(e.key==="Enter"&&this.value.trim()){var q=norm(this.value.trim()),c=CLIENTES.find(function(x){return norm(x.nome+" "+x.razao+" "+x.doc).indexOf(q)>=0});if(c){CLI_SEL=c.id;CLI_OPEN=true;location.hash="#cli";if(VIEWS.cli.show)VIEWS.cli.show()}else toast("Nenhum cliente encontrado para essa busca.")}});

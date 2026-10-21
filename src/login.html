@@ -1,0 +1,58 @@
+<title>Entrar · Monte Fuji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap">
+<style>
+:root{--fluxo:#253C8D;--fluxo-900:#18275E;--hidra:#3872CF;--legado:#B49B54;--branco:#fff;--fundo:#EFEFEC;--linha:#E6E6E3;--campo:#F4F4F2;--t1:#2C2C2C;--t3:#868684;--erro:#C2413A;--erro-50:#F8E6E5;--ok:#2F8F5B;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--fundo);min-height:100%}
+body{font-family:"Lexend Deca",ui-sans-serif,system-ui,sans-serif;color:var(--t1);font-size:14px;display:grid;place-items:center;min-height:100vh;padding:16px;-webkit-font-smoothing:antialiased}
+.box{background:var(--branco);border-radius:18px;width:min(380px,100%);padding:28px 24px 22px;display:grid;gap:14px;box-shadow:0 1px 0 #E3E3E0}
+.box img{height:44px;justify-self:center;max-width:100%;object-fit:contain}
+h1{font-size:17px;font-weight:600;margin:6px 0 0;text-align:center}
+p{margin:0;color:var(--t3);font-size:12.5px;text-align:center}
+label{display:grid;gap:5px;font-size:12px;color:#4A4A49}
+input{font:inherit;font-size:14px;border:1px solid var(--linha);background:var(--campo);border-radius:10px;padding:10px 12px;color:var(--t1);width:100%}
+input:focus{outline:2px solid var(--hidra);outline-offset:1px;background:#fff}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:11px 14px;background:var(--fluxo);color:#fff;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.err{background:var(--erro-50);color:var(--erro);border-radius:10px;padding:9px 11px;font-size:12.5px}
+.err[hidden],form[hidden]{display:none}
+form{display:grid;gap:12px}
+small{color:var(--t3);font-size:11px;text-align:center}
+</style>
+<main class="box">
+  <img src="/*LOGO*/" alt="Monte Fuji">
+  <form id="fLogin" autocomplete="on">
+    <h1>Entrar no sistema</h1>
+    <label>E-mail<input id="email" type="email" autocomplete="username" required autofocus></label>
+    <label>Senha<input id="senha" type="password" autocomplete="current-password" required></label>
+    <div class="err" id="err1" role="alert" hidden></div>
+    <button id="bt1" type="submit">Entrar</button>
+    <small>Esqueceu a senha? Peça ao administrador para redefinir.</small>
+  </form>
+  <form id="fTroca" hidden>
+    <h1>Crie a sua senha</h1>
+    <p>É o seu primeiro acesso (ou a senha foi redefinida). Escolha uma senha só sua, com pelo menos 8 caracteres.</p>
+    <label id="lAtual">Senha temporária<input id="atual" type="password" autocomplete="current-password"></label>
+    <label>Nova senha<input id="nova" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label>Repita a nova senha<input id="conf" type="password" autocomplete="new-password" minlength="8" required></label>
+    <div class="err" id="err2" role="alert" hidden></div>
+    <button id="bt2" type="submit">Salvar e entrar</button>
+  </form>
+</main>
+<script>
+function $(s){return document.querySelector(s)}
+function post(url,body){return fetch(url,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw j;return j})})}
+function erro(id,msg){var e=$(id);e.textContent=msg;e.hidden=false}
+function troca(senhaAtual){$("#fLogin").hidden=true;$("#fTroca").hidden=false;if(senhaAtual){$("#atual").value=senhaAtual;$("#lAtual").hidden=true;$("#nova").focus()}else $("#atual").focus()}
+if(/[?&]trocar=1/.test(location.search))troca("");
+$("#fLogin").addEventListener("submit",function(e){e.preventDefault();$("#err1").hidden=true;$("#bt1").disabled=true;var s=$("#senha").value;
+  post("/api/login",{email:$("#email").value,senha:s}).then(function(r){if(r.usuario&&r.usuario.trocar_senha)troca(s);else location.href="/"})
+  .catch(function(j){erro("#err1",j.erro||"Sem conexão. Tente de novo.")}).then(function(){$("#bt1").disabled=false})});
+$("#fTroca").addEventListener("submit",function(e){e.preventDefault();$("#err2").hidden=true;
+  if($("#nova").value!==$("#conf").value){erro("#err2","A confirmação não confere com a nova senha.");return}
+  $("#bt2").disabled=true;
+  post("/api/senha",{atual:$("#atual").value,nova:$("#nova").value}).then(function(){location.href="/"})
+  .catch(function(j){erro("#err2",j.erro||"Sem conexão. Tente de novo.")}).then(function(){$("#bt2").disabled=false})});
+</script>

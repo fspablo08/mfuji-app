@@ -1,9 +1,28 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "mfuji",
+  "name": "mfuji-app",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./public",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    // o Worker atende todas as requisições primeiro: nada é entregue sem login
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mfuji-db",
+      "database_id": "5b7f760b-07f6-440b-8cec-79009bbe2aef",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "BACKUPS", "id": "daef3f45b5e643bca2bff1627caa1958" }
+  ],
+  // backup diário dos dados às 6h UTC (3h em Brasília)
+  "triggers": { "crons": ["0 6 * * *"] },
+  "observability": { "enabled": true }
 }
