@@ -669,6 +669,21 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .bdl .grow b{display:block;font-size:12.5px}.bdl .grow small{display:block;font-size:10.5px;color:var(--cinza-600,#777)}
 .bdl li.hj .bdd small{color:var(--legado-700)}
 
+/* importar clientes do Conta Azul */
+.modal .box.imp{width:min(720px,100%)}
+.imsteps{margin:0;padding-left:18px;display:grid;gap:3px;font-family:var(--f-t);font-size:12.5px;color:var(--t2)}
+.drop{display:flex;align-items:center;gap:10px;border:1.5px dashed #D3D3CF;border-radius:12px;padding:14px;cursor:pointer;color:var(--hidra)}
+.drop:hover,.drop.on{border-color:var(--hidra);background:var(--hidra-50)}
+.drop span{display:grid;gap:2px}.drop b{font-weight:600;font-size:12.5px;color:var(--t1)}.drop small{font-size:10.5px;color:var(--t3)}
+#imBody{display:grid;gap:10px}
+.imsum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px}
+.immap summary{cursor:pointer;font-size:11.5px;color:var(--t2);margin-bottom:8px}
+.immap .form{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:560px){.immap .form{grid-template-columns:minmax(0,1fr)}}
+.cta:disabled{opacity:.45;cursor:default;box-shadow:none}
+.imp .tb td.num{white-space:nowrap}
+.imp .tb td:last-child{overflow-wrap:anywhere;min-width:160px}
+
 </style>
 <div class="app" id="app">
   <aside class="side" id="side" aria-label="Menu"></aside>
@@ -988,6 +1003,178 @@ function openCliModal(nome,cb){
   if(dd.length>=11&&dd.length===String(nome).replace(/[\s.\/-]/g,"").length){$("#ncDoc").value=nome;$("#ncPath").textContent="…";m.hidden=false;if(dd.length===14)busca();setTimeout(function(){$("#ncDoc").focus()},30);return}
   $("#ncNome").value=nome||"";$("#ncPath").textContent=nome||"…";
   m.hidden=false;setTimeout(function(){$("#ncDoc").focus()},30);
+}
+
+/* ===== importar clientes do Conta Azul (planilha exportada: .xlsx, .xls ou .csv) ===== */
+var IMP_CAMPOS=[
+  ["nome","Nome do cliente",["nome","nome do cliente","cliente","nome / razao social","nome/razao social","nome ou razao social"]],
+  ["fantasia","Nome fantasia",["nome fantasia","fantasia"]],
+  ["razao","Razão social",["razao social","razao"]],
+  ["doc","CNPJ / CPF",["cpf/cnpj","cnpj/cpf","cpf / cnpj","cnpj / cpf","cnpj","documento","cpf ou cnpj","cnpj ou cpf"]],
+  ["cpf","CPF (coluna separada)",["cpf"]],
+  ["tipo","Tipo de pessoa",["tipo de pessoa","tipo pessoa","pessoa","tipo"]],
+  ["email","E-mail",["e-mail","email","e-mail principal","email principal","emails","e-mails"]],
+  ["email2","E-mail do contato",["e-mail contato","email contato","e-mail do contato","email do contato"]]
+];
+function impKey(s){return norm(String(s||"")).replace(/[º°]/g,"o").replace(/[*:]/g,"").replace(/\s+/g," ").trim()}
+/* acha a linha de cabeçalho e liga cada campo a uma coluna */
+function impDetect(rows){
+  var best={row:0,map:{},n:-1};
+  rows.slice(0,15).forEach(function(r,ri){
+    var hs=r.map(impKey),map={},used={},n=0;
+    function take(f,j){if(j>=0){map[f[0]]=j;used[j]=1;n++}}
+    /* primeiro os nomes exatos, depois os parecidos */
+    IMP_CAMPOS.forEach(function(f){take(f,hs.findIndex(function(h,k){return !used[k]&&h&&f[2].indexOf(h)>=0}))});
+    IMP_CAMPOS.forEach(function(f){if(map[f[0]]!==undefined||["num","tipo","uf"].indexOf(f[0])>=0)return;take(f,hs.findIndex(function(h,k){return !used[k]&&h&&f[2].some(function(s){return s.length>3&&h.indexOf(s)>=0})}))});
+    if(n>best.n)best={row:ri,map:map,n:n};
+  });
+  return best;
+}
+function fmtCPF(d){return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,"$1.$2.$3-$4")}
+function impDoc(v,tipo){
+  var d=digits(v),t=norm(tipo||"");if(!d)return "";
+  /* planilhas do Excel costumam perder os zeros à esquerda */
+  if(d.length>11&&d.length<14)d=d.padStart(14,"0");
+  else if(d.length<11&&d.length>=9)d=/jur/.test(t)?d.padStart(14,"0"):d.padStart(11,"0");
+  return d.length===14?fmtCNPJ(d):d.length===11?fmtCPF(d):String(v).trim();
+}
+function impPerfil(o){
+  var t=norm(o.nome+" "+o.razao);
+  if(/condom|edif|residencial|conjunto habitacional/.test(t))return "Condomínio";
+  if(/constru|incorpora|engenharia/.test(t))return "Construtora";
+  if(/industria/.test(t))return "Indústria";
+  if(digits(o.doc).length===11||/fis/.test(norm(o.tipo||"")))return "Residência";
+  return "Comércio";
+}
+/* transforma as linhas da planilha em clientes do sistema */
+function impBuild(rows,hdr,map){
+  function g(r,k){var j=map[k];return j===undefined||j===""||j===null?"":String(r[j]==null?"":r[j]).trim()}
+  var out=[];
+  rows.slice(hdr+1).forEach(function(r){
+    if(!r||!r.some(function(x){return String(x==null?"":x).trim()}))return;
+    var nome=g(r,"fantasia")||g(r,"nome")||g(r,"razao"),tipo=g(r,"tipo");
+    /* só nome, CNPJ/CPF e e-mails: telefones, contato e endereço ficam de fora */
+    var ems=(g(r,"email")+","+g(r,"email2")).toLowerCase().split(/[;,\s]+/).filter(function(x,i,l){return x.indexOf("@")>0&&l.indexOf(x)===i});
+    var o={nome:nome,razao:g(r,"razao")||g(r,"nome")||nome,doc:impDoc(g(r,"doc")||g(r,"cpf"),g(r,"doc")?tipo:"Física"),tipo:tipo,email:ems.join(", ")};
+    o.perfil=impPerfil(o);out.push(o);
+  });
+  return out;
+}
+/* separa novos, já cadastrados (mesmo nome) e linhas sem nome;
+   o mesmo CNPJ com outro nome conta como outra unidade do cliente */
+function impPlan(list){
+  var byNome={},seen={},plan={novos:[],existentes:[],semNome:0,repetidos:0};
+  CLIENTES.forEach(function(c){byNome[norm(c.nome)]=c});
+  list.forEach(function(o){
+    if(!o.nome){plan.semNome++;return}
+    var k=digits(o.doc)+"|"+norm(o.nome);
+    if(seen[k]){plan.repetidos++;return}seen[k]=1;
+    var c=byNome[norm(o.nome)];
+    if(c)plan.existentes.push([c,o]);else plan.novos.push(o);
+  });
+  return plan;
+}
+function impApply(plan){
+  var fill=0;
+  plan.novos.forEach(function(o){
+    CLIENTES.push({id:nid(CLIENTES),nome:o.nome,razao:o.razao||o.nome,doc:o.doc||"—",perfil:o.perfil,contato:"—",tel:"—",email:o.email||"—",end:"—",hist:[],gar:[],pasta:"Clientes / "+o.nome,origem:"Conta Azul"});
+    if(DRIVE_FOLDERS.indexOf(o.nome)<0)DRIVE_FOLDERS.push(o.nome);
+  });
+  /* nos já cadastrados, só completa o que estava vazio */
+  plan.existentes.forEach(function(p){var c=p[0],o=p[1],ch=0;["doc","email"].forEach(function(k){if((!c[k]||c[k]==="—")&&o[k]){c[k]=o[k];ch=1}});if(ch)fill++});
+  dbSave();
+  return fill;
+}
+/* lê CSV (separador ; ou , e acentos em UTF-8 ou Windows-1252) */
+function impCSV(buf){
+  var txt=new TextDecoder("utf-8").decode(buf);if(txt.indexOf("�")>=0)txt=new TextDecoder("windows-1252").decode(buf);
+  txt=txt.replace(/^﻿/,"");
+  var first=txt.split(/\r?\n/)[0]||"",sep=(first.split(";").length>=first.split(",").length)?";":(first.split("\t").length>first.split(",").length?"\t":",");
+  var rows=[],row=[],cell="",q=false;
+  for(var i=0;i<txt.length;i++){var ch=txt[i];
+    if(q){if(ch==='"'){if(txt[i+1]==='"'){cell+='"';i++}else q=false}else cell+=ch}
+    else if(ch==='"')q=true;
+    else if(ch===sep){row.push(cell);cell=""}
+    else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&txt[i+1]==="\n")i++;row.push(cell);rows.push(row);row=[];cell=""}
+    else cell+=ch}
+  if(cell||row.length){row.push(cell);rows.push(row)}
+  return rows;
+}
+var _xlsxP=null;
+function loadXLSX(){
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(!_xlsxP)_xlsxP=new Promise(function(ok,no){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){window.XLSX?ok(window.XLSX):no()};s.onerror=function(){_xlsxP=null;no()};document.head.appendChild(s)});
+  return _xlsxP;
+}
+function impRead(file,cb){
+  var rd=new FileReader();
+  rd.onerror=function(){cb("Não consegui ler o arquivo.")};
+  rd.onload=function(){
+    var buf=rd.result;
+    if(/\.(csv|txt)$/i.test(file.name)){try{cb(null,impCSV(buf))}catch(e){cb("Não consegui ler este CSV.")}return}
+    loadXLSX().then(function(X){
+      try{var wb=X.read(new Uint8Array(buf),{type:"array"});
+        /* usa a aba com mais linhas preenchidas */
+        var best=[];wb.SheetNames.forEach(function(n){var r=X.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""});if(r.length>best.length)best=r});
+        cb(null,best.map(function(r){return r.map(function(x){return typeof x==="number"?String(Math.round(x)===x?x.toFixed(0):x):x})}))}
+      catch(e){cb("Este arquivo não parece uma planilha do Excel.")}
+    },function(){cb("Sem internet para abrir planilhas do Excel. Tente salvar como CSV.")});
+  };
+  rd.readAsArrayBuffer(file);
+}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function openImpModal(done){
+  var m=$("#impModal"),S={rows:null,hdr:0,map:{},file:""};
+  if(m)m.remove();
+  m=document.createElement("div");m.className="modal";m.id="impModal";
+  m.innerHTML='<div class="box imp" role="dialog" aria-modal="true" aria-labelledby="imT"><h3 id="imT">Importar clientes do Conta Azul</h3>'
+  +'<ol class="imsteps"><li>No Conta Azul, abra <b>Cadastros › Clientes</b>.</li><li>Clique em <b>Exportar</b> (ou <b>Mais ações › Exportar</b>) e baixe a planilha.</li><li>Escolha o arquivo aqui. Aceita .xlsx, .xls e .csv.</li></ol>'
+  +'<label class="drop" id="imDrop">'+ic("up",16)+'<span><b>Escolher a planilha</b><small>ou arraste o arquivo para cá</small></span><input type="file" id="imFile" accept=".xlsx,.xls,.csv,.txt" hidden></label>'
+  +'<div id="imBody"></div>'
+  +'<div class="acts"><button class="ghost" type="button" data-imx>Cancelar</button><button class="cta rq" type="button" id="imGo" disabled>Importar</button></div></div>';
+  document.body.appendChild(m);
+  function close(){m.remove()}
+  function plan(){return impPlan(impBuild(S.rows,S.hdr,S.map))}
+  function draw(){
+    var p=plan(),body=$("#imBody",m),cols=S.rows[S.hdr]||[];
+    var opts=function(sel){return '<option value="">—</option>'+cols.map(function(h,j){return '<option value="'+j+'"'+(sel===j?' selected':'')+'>'+esc(h||("Coluna "+(j+1)))+'</option>'}).join("")};
+    body.innerHTML='<div class="imsum"><span class="pill ok">'+p.novos.length+' novo'+(p.novos.length===1?'':'s')+'</span>'
+      +(p.existentes.length?'<span class="pill ne">'+p.existentes.length+' já cadastrado'+(p.existentes.length===1?'':'s')+'</span>':'')
+      +(p.semNome?'<span class="pill al">'+p.semNome+' sem nome</span>':'')+(p.repetidos?'<span class="pill al">'+p.repetidos+' repetido'+(p.repetidos===1?'':'s')+' na planilha</span>':'')
+      +'<span class="mut">'+esc(S.file)+'</span></div>'
+      +(p.existentes.length?'<p class="sub">Clientes já cadastrados com o mesmo nome não são duplicados: só os campos vazios deles são completados.</p>':'')
+      +(p.novos.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Cliente</th><th>CNPJ / CPF</th><th>Perfil</th><th>E-mails</th></tr></thead><tbody>'
+        +p.novos.slice(0,5).map(function(o){return '<tr><td><b>'+esc(o.nome)+'</b></td><td class="num">'+esc(o.doc||"—")+'</td><td>'+o.perfil+'</td><td>'+esc(o.email||"—")+'</td></tr>'}).join("")
+        +'</tbody></table></div>'+(p.novos.length>5?'<p class="sub">E mais '+(p.novos.length-5)+'. O perfil é sugerido pelo nome e pelo tipo de pessoa; dá para mudar depois na ficha.</p>':'')
+       :'<p class="sub">Nenhum cliente novo para importar com as colunas abaixo.</p>')
+      +'<details class="immap"'+(S.map.nome===undefined&&S.map.fantasia===undefined?' open':'')+'><summary>Colunas da planilha</summary><div class="form">'
+      +IMP_CAMPOS.map(function(f){return '<div class="fld"><label for="im_'+f[0]+'">'+f[1]+'</label><select id="im_'+f[0]+'" data-f="'+f[0]+'">'+opts(S.map[f[0]])+'</select></div>'}).join("")
+      +'</div></details>';
+    var go=$("#imGo",m);go.disabled=!(p.novos.length||p.existentes.length);go.textContent=p.novos.length?'Importar '+p.novos.length+' cliente'+(p.novos.length===1?'':'s'):'Atualizar cadastrados';
+  }
+  function load(file){
+    if(!file)return;S.file=file.name;$("#imBody",m).innerHTML='<div class="rfst"><span class="spin"></span><span class="mut">Lendo a planilha…</span></div>';
+    impRead(file,function(err,rows){
+      if(err){$("#imBody",m).innerHTML='<div class="rfst"><span class="pill er">Erro</span> <span class="mut">'+err+'</span></div>';return}
+      rows=rows.filter(function(r){return r&&r.length});
+      if(!rows.length){$("#imBody",m).innerHTML='<div class="rfst"><span class="pill al">Planilha vazia</span></div>';return}
+      var d=impDetect(rows);S.rows=rows;S.hdr=d.row;S.map=d.map;draw();
+    });
+  }
+  m.addEventListener("click",function(e){
+    if(e.target===m||e.target.closest("[data-imx]")){close();return}
+    if(e.target.closest("#imGo")){var p=plan(),fill=impApply(p);close();
+      toast(p.novos.length+" cliente"+(p.novos.length===1?" importado":"s importados")+" do Conta Azul"+(fill?" · "+fill+" atualizado"+(fill===1?"":"s"):"")+".");
+      if(done)done(p);return}
+  });
+  m.addEventListener("change",function(e){
+    if(e.target.id==="imFile"){load(e.target.files[0]);return}
+    var f=e.target.dataset&&e.target.dataset.f;if(f){if(e.target.value==="")delete S.map[f];else S.map[f]=+e.target.value;draw()}
+  });
+  var dz=$("#imDrop",m);
+  dz.addEventListener("dragover",function(e){e.preventDefault();dz.classList.add("on")});
+  dz.addEventListener("dragleave",function(){dz.classList.remove("on")});
+  dz.addEventListener("drop",function(e){e.preventDefault();dz.classList.remove("on");load(e.dataTransfer.files[0])});
 }
 
 /* ===== gráficos reutilizáveis ===== */
@@ -1377,7 +1564,7 @@ VIEWS.cli=function(v){
      +'<div><span class="sq">'+ic("shield",14)+'</span><span class="t">Com garantia vigente</span><b class="num">'+vig+'</b><span class="pill go">LEGADO</span></div>'
      +'<div><span class="sq">'+ic("clock",14)+'</span><span class="t">Garantias vencendo em 30 dias</span><b class="num">'+v30+'</b><span class="pill al">Oportunidade de renovação</span></div>'
      +'<div><span class="sq">'+ic("agenda",14)+'</span><span class="t">Sem visita há 6+ meses</span><b class="num">'+semv+'</b><span class="pill er">Reativar</span></div></div></div>'
-    +'<div class="card c12"><div class="ch"><h4>Cadastro de clientes</h4><div class="r"><span class="srcs"><span>Drive</span><span>Agenda</span><span>Conta Azul</span><span>Gmail</span></span><button class="cta" type="button" data-newcli>'+ic("plus",13)+'Novo cliente</button></div></div>'
+    +'<div class="card c12"><div class="ch"><h4>Cadastro de clientes</h4><div class="r"><span class="srcs"><span>Drive</span><span>Agenda</span><span>Conta Azul</span><span>Gmail</span></span><button class="ghost" type="button" data-impcli>'+ic("up",13)+'Importar do Conta Azul</button><button class="cta" type="button" data-newcli>'+ic("plus",13)+'Novo cliente</button></div></div>'
      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 260px">'+ic("search",14)+'<input id="cQ" placeholder="Nome, razão social ou CNPJ" aria-label="Buscar clientes" value="'+st.q.replace(/"/g,"&quot;")+'"></div><div class="filt" role="group" aria-label="Perfil">'+["Todos","Residência","Comércio","Condomínio","Construtora"].map(function(p){return '<button type="button" aria-pressed="'+(st.p===p)+'">'+p+'</button>'}).join("")+'</div></div>'
      +'<div class="scroll-x"><table class="tb" id="cTb"><thead><tr><th>Cliente</th><th>CNPJ / CPF</th><th>Último serviço</th><th>Garantia</th><th>Próxima visita</th><th>Financeiro</th><th></th></tr></thead><tbody></tbody></table></div><p class="sub">Clique num cliente para abrir a ficha completa. Último serviço, garantias e próximas visitas vêm da agenda.</p></div></div>';
     table();
@@ -1392,7 +1579,7 @@ VIEWS.cli=function(v){
       +'<td>'+(h?'<b>'+(SERV[h[1]]?SERV[h[1]].sh:h[1])+'</b><small>'+dmy(h[0])+'</small>':'<span class="mut">Sem serviços</span>')+'</td>'
       +'<td>'+(!g?'<span class="pill ne">—</span>':g.left<0?'<span class="pill ne">Encerrada</span>':g.left<=30?'<span class="pill al">'+g.left+' dias</span>':'<span class="pill go">até '+dmy(g.fim)+'</span>')+'</td>'
       +'<td>'+(pv?'<b>'+dmy(pv.date).slice(0,5)+'</b><small>'+svShort(pv)+'</small>':'<span class="mut">—</span>')+'</td>'
-      +'<td>'+(!f.lista.length?'<span class="pill ne">—</span>':f.n?'<span class="pill '+(f.venc?'er':'al')+'">'+brl(f.aberto)+(f.venc?' vencido':' em aberto')+'</span>':'<span class="pill ok">Em dia</span>')+'</td><td class="r"><span class="chev">›</span></td></tr>'}).join("")||'<tr><td colspan="7" class="mut">'+(CLIENTES.length?'Nenhum cliente encontrado.':'Nenhum cliente cadastrado ainda. Clique em Novo cliente e digite o CNPJ.')+(qd.length===14?' <button class="lnk" type="button" data-newcli>Buscar este CNPJ e cadastrar</button>':'')+'</td></tr>';
+      +'<td>'+(!f.lista.length?'<span class="pill ne">—</span>':f.n?'<span class="pill '+(f.venc?'er':'al')+'">'+brl(f.aberto)+(f.venc?' vencido':' em aberto')+'</span>':'<span class="pill ok">Em dia</span>')+'</td><td class="r"><span class="chev">›</span></td></tr>'}).join("")||'<tr><td colspan="7" class="mut">'+(CLIENTES.length?'Nenhum cliente encontrado.':'Nenhum cliente cadastrado ainda. <button class="lnk" type="button" data-impcli>Importe a planilha do Conta Azul</button> ou clique em Novo cliente e digite o CNPJ.')+(qd.length===14?' <button class="lnk" type="button" data-newcli>Buscar este CNPJ e cadastrar</button>':'')+'</td></tr>';
   }
   function prof(){
     var c=CLIENTES.find(function(x){return x.id===CLI_SEL});if(!c){CLI_OPEN=false;return list()}
@@ -1431,6 +1618,7 @@ VIEWS.cli=function(v){
     var r=e.target.closest("tr.cl");if(r){CLI_SEL=+r.dataset.id;CLI_OPEN=true;prof();return}
     if(e.target.closest("[data-cback]")){CLI_OPEN=false;list();return}
     var f=e.target.closest(".filt button");if(f){$$(".filt button",v).forEach(function(b){b.setAttribute("aria-pressed",b===f?"true":"false")});st.p=f.textContent;table();return}
+    if(e.target.closest("[data-impcli]")){openImpModal(function(){CLI_OPEN=false;list()});return}
     if(e.target.closest("[data-newcli]")){openCliModal(digits(st.q).length===14?st.q:"",function(c){CLI_SEL=c.id;CLI_OPEN=true;prof()});return}
     if(e.target.closest("[data-clink]")){var c=CLIENTES.find(function(x){return x.id===CLI_SEL});openDriveModal(c.nome.split(" ").slice(-1)[0],function(fd){c.pasta="Clientes / "+fd;prof();toast("Pasta vinculada.")});return}
     var n=e.target.closest("[data-newos]");if(n){location.hash="#os";setTimeout(function(){VIEWS.os.pre&&VIEWS.os.pre(+n.dataset.newos)},30);return}
@@ -1598,7 +1786,7 @@ VIEWS.cfg=function(v){
    +'<div class="kv2"><div><small>Registros salvos</small><span>'+tot+'</span></div><div><small>Último salvamento</small><span>'+salvo()+'</span></div></div>'
    +'<div class="acts" style="justify-content:flex-start;flex-wrap:wrap"><button class="cta" type="button" id="bkDown">'+ic("down",13)+' Baixar backup</button><button class="ghost" type="button" id="bkUp">'+ic("up",13)+' Restaurar backup</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div></div>'
   +'<div class="card c6"><div class="ch"><h4>Integrações</h4><span class="sub">Próximas etapas</span></div>'
-   +[["CF","#B49B54","Cloudflare","Hospedagem do sistema","Conectado"],["R","#2F8F5B","Receita Federal","Consulta de CNPJ pela BrasilAPI","Conectado"],["D1","#B49B54","Banco de dados (Cloudflare D1)","Dados compartilhados entre a equipe","Próxima etapa"],["G","#3872CF","Google Drive","Pastas de clientes e OS em PDF","Não conectado"],["M","#C2413A","Gmail","3 caixas: atendimento, financeiro e comercial","Não conectado"],["CA","#253C8D","Conta Azul","Clientes e pagamentos","Não conectado"],["IA","#18275E","Assistente","Base de conhecimento da Monte Fuji","Aguardando conteúdo"]].map(function(x){return '<div class="intg"><span class="lg2" style="background:'+x[1]+'">'+x[0]+'</span><span class="grow"><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="pill '+(x[4]==="Conectado"?"ok":x[4]==="Próxima etapa"?"in":"al")+'">'+x[4]+'</span></div>'}).join("")+'</div>'
+   +[["CF","#B49B54","Cloudflare","Hospedagem do sistema","Conectado"],["R","#2F8F5B","Receita Federal","Consulta de CNPJ pela BrasilAPI","Conectado"],["D1","#B49B54","Banco de dados (Cloudflare D1)","Dados compartilhados entre a equipe","Próxima etapa"],["G","#3872CF","Google Drive","Pastas de clientes e OS em PDF","Não conectado"],["M","#C2413A","Gmail","3 caixas: atendimento, financeiro e comercial","Não conectado"],["CA","#253C8D","Conta Azul","Clientes importados por planilha (em Clientes); pagamentos ainda não","Por planilha"],["IA","#18275E","Assistente","Base de conhecimento da Monte Fuji","Aguardando conteúdo"]].map(function(x){return '<div class="intg"><span class="lg2" style="background:'+x[1]+'">'+x[0]+'</span><span class="grow"><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="pill '+(x[4]==="Conectado"?"ok":x[4]==="Próxima etapa"||x[4]==="Por planilha"?"in":"al")+'">'+x[4]+'</span></div>'}).join("")+'</div>'
   +'<div class="card c6"><div class="ch"><h4>Usuários</h4></div><ul class="ls"><li><span class="av" style="background:var(--trigo);color:var(--fluxo)">PB</span><span class="grow"><b>Pablo</b><small>Administrador</small></span></li></ul><p class="sub">Login e permissões por usuário entram junto com o banco de dados compartilhado.</p></div></div>';
   }
   v.addEventListener("click",function(e){
@@ -1618,7 +1806,7 @@ VIEWS.cfg=function(v){
 /* ===== CENTRAL DE AJUDA ===== */
 VIEWS.help=function(v){
   v.innerHTML='<div class="grid"><div class="card c8"><div class="ch"><h4>Dúvidas frequentes</h4></div><div class="search" style="flex:none">'+ic("search",14)+'<input placeholder="Buscar ajuda" aria-label="Buscar ajuda"></div>'
-  +[["Como gero uma ordem de serviço?","Em Ordens de serviço, escolha o cliente, preencha o serviço e clique em Registrar OS. Use Imprimir para gerar o PDF no modelo padrão."],["Como cadastro uma visita na agenda?","Em Agenda, clique em + Novo agendamento ou em Agendar numa das melhores datas sugeridas. Os campos definitivos ainda serão definidos."],["O assistente lê meus e-mails?","No sistema final, sim: ele lê a caixa da empresa para sugerir respostas. Nada é enviado sem você clicar em enviar."],["Onde vejo as garantias de um cliente?","Em Clientes, selecione o cliente. As garantias aparecem com a barra de tempo restante e a data de término."],["Os dados financeiros são atualizados sozinhos?","Sim, quando a Conta Azul estiver conectada. A sincronização prevista é a cada hora."]].map(function(f,i){return '<details class="faq"'+(i?'':' open')+'><summary>'+f[0]+'</summary><p>'+f[1]+'</p></details>'}).join("")+'</div>'
+  +[["Como trago os clientes do Conta Azul?","No Conta Azul, abra Cadastros › Clientes e use Exportar. Aqui, em Clientes, clique em Importar do Conta Azul e escolha a planilha. Clientes com o mesmo nome não são duplicados, então dá para importar de novo quando quiser."],["Como gero uma ordem de serviço?","Em Ordens de serviço, escolha o cliente, preencha o serviço e clique em Registrar OS. Use Imprimir para gerar o PDF no modelo padrão."],["Como cadastro uma visita na agenda?","Em Agenda, clique em + Novo agendamento ou em Agendar numa das melhores datas sugeridas. Os campos definitivos ainda serão definidos."],["O assistente lê meus e-mails?","No sistema final, sim: ele lê a caixa da empresa para sugerir respostas. Nada é enviado sem você clicar em enviar."],["Onde vejo as garantias de um cliente?","Em Clientes, selecione o cliente. As garantias aparecem com a barra de tempo restante e a data de término."],["Os dados financeiros são atualizados sozinhos?","Sim, quando a Conta Azul estiver conectada. A sincronização prevista é a cada hora."]].map(function(f,i){return '<details class="faq"'+(i?'':' open')+'><summary>'+f[0]+'</summary><p>'+f[1]+'</p></details>'}).join("")+'</div>'
   +'<div class="c4" style="display:flex;flex-direction:column;gap:10px"><div class="card hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Falar com o suporte</span></div><b style="font-size:20px">atendimento@mfuji.com.br</b><p class="hs">(11) 3609-5222 · segunda a sábado</p></div>'
   +'<div class="card"><div class="ch"><h4>Atalhos</h4></div><ul class="ls"><li><span class="grow"><b style="font-weight:500">Abrir o assistente</b></span><span class="tag">Ctrl + J</span></li><li><span class="grow"><b style="font-weight:500">Fechar janelas</b></span><span class="tag">Esc</span></li><li><span class="grow"><b style="font-weight:500">Abrir um dia na agenda</b></span><span class="tag">Duplo clique</span></li></ul></div>'
   +'<div class="card"><div class="ch"><h4>Versão</h4><span class="pill in">Primeira versão</span></div><p class="txt">v1.0 · em uso desde '+dmy(TD)+'. Dados salvos neste navegador; próximo passo: banco de dados compartilhado no Cloudflare.</p></div></div></div>';
