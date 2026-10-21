@@ -682,6 +682,7 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 @media (max-width:560px){.immap .form{grid-template-columns:minmax(0,1fr)}}
 .cta:disabled{opacity:.45;cursor:default;box-shadow:none}
 .imp .tb td.num{white-space:nowrap}
+.imp .tb td:last-child{overflow-wrap:anywhere;min-width:160px}
 
 </style>
 <div class="app" id="app">
@@ -1012,17 +1013,8 @@ var IMP_CAMPOS=[
   ["doc","CNPJ / CPF",["cpf/cnpj","cnpj/cpf","cpf / cnpj","cnpj / cpf","cnpj","documento","cpf ou cnpj","cnpj ou cpf"]],
   ["cpf","CPF (coluna separada)",["cpf"]],
   ["tipo","Tipo de pessoa",["tipo de pessoa","tipo pessoa","pessoa","tipo"]],
-  ["contato","Contato",["contato","nome do contato","pessoa de contato","responsavel","contato principal"]],
-  ["tel","Telefone",["telefone","telefone comercial","fone","telefone 1","telefone principal","tel"]],
-  ["cel","Celular",["celular","telefone celular","whatsapp","telefone 2"]],
   ["email","E-mail",["e-mail","email","e-mail principal","email principal","emails","e-mails"]],
-  ["email2","E-mail do contato",["e-mail contato","email contato","e-mail do contato","email do contato"]],
-  ["rua","Endereço (rua)",["endereco","logradouro","rua","endereco completo"]],
-  ["num","Número",["numero","no","n","nro"]],
-  ["comp","Complemento",["complemento"]],
-  ["bairro","Bairro",["bairro"]],
-  ["cidade","Cidade",["cidade","municipio"]],
-  ["uf","Estado",["estado","uf"]]
+  ["email2","E-mail do contato",["e-mail contato","email contato","e-mail do contato","email do contato"]]
 ];
 function impKey(s){return norm(String(s||"")).replace(/[º°]/g,"o").replace(/[*:]/g,"").replace(/\s+/g," ").trim()}
 /* acha a linha de cabeçalho e liga cada campo a uma coluna */
@@ -1046,7 +1038,6 @@ function impDoc(v,tipo){
   else if(d.length<11&&d.length>=9)d=/jur/.test(t)?d.padStart(14,"0"):d.padStart(11,"0");
   return d.length===14?fmtCNPJ(d):d.length===11?fmtCPF(d):String(v).trim();
 }
-function impTel(v){var d=digits(v);if(d.length>11&&d.slice(0,2)==="55")d=d.slice(2);return d.length===11?"("+d.slice(0,2)+") "+d.slice(2,7)+"-"+d.slice(7):d.length===10?"("+d.slice(0,2)+") "+d.slice(2,6)+"-"+d.slice(6):String(v||"").trim()}
 function impPerfil(o){
   var t=norm(o.nome+" "+o.razao);
   if(/condom|edif|residencial|conjunto habitacional/.test(t))return "Condomínio";
@@ -1062,12 +1053,10 @@ function impBuild(rows,hdr,map){
   rows.slice(hdr+1).forEach(function(r){
     if(!r||!r.some(function(x){return String(x==null?"":x).trim()}))return;
     var nome=g(r,"fantasia")||g(r,"nome")||g(r,"razao"),tipo=g(r,"tipo");
-    var rua=[g(r,"rua"),g(r,"num")].filter(Boolean).join(", ")+(g(r,"comp")?" "+g(r,"comp"):"");
-    var cid=g(r,"cidade")+(g(r,"uf")?"/"+g(r,"uf").toUpperCase():"");
-    var loc=[g(r,"bairro"),cid].filter(Boolean).join(", ");
-    var tels=[g(r,"tel"),g(r,"cel")].filter(Boolean).map(impTel).filter(function(t,i,a){return a.indexOf(t)===i});
-    var o={nome:nome,razao:g(r,"razao")||g(r,"nome")||nome,doc:impDoc(g(r,"doc")||g(r,"cpf"),g(r,"doc")?tipo:"Física"),tipo:tipo,contato:g(r,"contato"),tel:tels.join(" / "),email:(g(r,"email")||g(r,"email2")).split(/[;,\s]+/).filter(Boolean)[0]||"",end:[rua,loc].filter(Boolean).join(" · ")};
-    o.email=o.email.toLowerCase();o.perfil=impPerfil(o);out.push(o);
+    /* só nome, CNPJ/CPF e e-mails: telefones, contato e endereço ficam de fora */
+    var ems=(g(r,"email")+","+g(r,"email2")).toLowerCase().split(/[;,\s]+/).filter(function(x,i,l){return x.indexOf("@")>0&&l.indexOf(x)===i});
+    var o={nome:nome,razao:g(r,"razao")||g(r,"nome")||nome,doc:impDoc(g(r,"doc")||g(r,"cpf"),g(r,"doc")?tipo:"Física"),tipo:tipo,email:ems.join(", ")};
+    o.perfil=impPerfil(o);out.push(o);
   });
   return out;
 }
@@ -1088,11 +1077,11 @@ function impPlan(list){
 function impApply(plan){
   var fill=0;
   plan.novos.forEach(function(o){
-    CLIENTES.push({id:nid(CLIENTES),nome:o.nome,razao:o.razao||o.nome,doc:o.doc||"—",perfil:o.perfil,contato:o.contato||"—",tel:o.tel||"—",email:o.email||"—",end:o.end||"—",hist:[],gar:[],pasta:"Clientes / "+o.nome,origem:"Conta Azul"});
+    CLIENTES.push({id:nid(CLIENTES),nome:o.nome,razao:o.razao||o.nome,doc:o.doc||"—",perfil:o.perfil,contato:"—",tel:"—",email:o.email||"—",end:"—",hist:[],gar:[],pasta:"Clientes / "+o.nome,origem:"Conta Azul"});
     if(DRIVE_FOLDERS.indexOf(o.nome)<0)DRIVE_FOLDERS.push(o.nome);
   });
   /* nos já cadastrados, só completa o que estava vazio */
-  plan.existentes.forEach(function(p){var c=p[0],o=p[1],ch=0;["doc","contato","tel","email","end"].forEach(function(k){if((!c[k]||c[k]==="—")&&o[k]){c[k]=o[k];ch=1}});if(ch)fill++});
+  plan.existentes.forEach(function(p){var c=p[0],o=p[1],ch=0;["doc","email"].forEach(function(k){if((!c[k]||c[k]==="—")&&o[k]){c[k]=o[k];ch=1}});if(ch)fill++});
   dbSave();
   return fill;
 }
@@ -1154,8 +1143,8 @@ function openImpModal(done){
       +(p.semNome?'<span class="pill al">'+p.semNome+' sem nome</span>':'')+(p.repetidos?'<span class="pill al">'+p.repetidos+' repetido'+(p.repetidos===1?'':'s')+' na planilha</span>':'')
       +'<span class="mut">'+esc(S.file)+'</span></div>'
       +(p.existentes.length?'<p class="sub">Clientes já cadastrados com o mesmo nome não são duplicados: só os campos vazios deles são completados.</p>':'')
-      +(p.novos.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Cliente</th><th>CNPJ / CPF</th><th>Perfil</th><th>Telefone</th><th>Cidade</th></tr></thead><tbody>'
-        +p.novos.slice(0,5).map(function(o){return '<tr><td><b>'+esc(o.nome)+'</b><small>'+esc(o.email)+'</small></td><td class="num">'+esc(o.doc||"—")+'</td><td>'+o.perfil+'</td><td>'+esc(o.tel||"—")+'</td><td>'+esc(o.end.split("·").pop().trim()||"—")+'</td></tr>'}).join("")
+      +(p.novos.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Cliente</th><th>CNPJ / CPF</th><th>Perfil</th><th>E-mails</th></tr></thead><tbody>'
+        +p.novos.slice(0,5).map(function(o){return '<tr><td><b>'+esc(o.nome)+'</b></td><td class="num">'+esc(o.doc||"—")+'</td><td>'+o.perfil+'</td><td>'+esc(o.email||"—")+'</td></tr>'}).join("")
         +'</tbody></table></div>'+(p.novos.length>5?'<p class="sub">E mais '+(p.novos.length-5)+'. O perfil é sugerido pelo nome e pelo tipo de pessoa; dá para mudar depois na ficha.</p>':'')
        :'<p class="sub">Nenhum cliente novo para importar com as colunas abaixo.</p>')
       +'<details class="immap"'+(S.map.nome===undefined&&S.map.fantasia===undefined?' open':'')+'><summary>Colunas da planilha</summary><div class="form">'

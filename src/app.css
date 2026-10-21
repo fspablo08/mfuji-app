@@ -672,3 +672,4 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 @media (max-width:560px){.immap .form{grid-template-columns:minmax(0,1fr)}}
 .cta:disabled{opacity:.45;cursor:default;box-shadow:none}
 .imp .tb td.num{white-space:nowrap}
+.imp .tb td:last-child{overflow-wrap:anywhere;min-width:160px}
