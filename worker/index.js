@@ -4,7 +4,7 @@
  * - faz um backup diário no KV (env.BACKUPS)
  */
 
-const APP_VERSAO = "2.0.0";
+const APP_VERSAO = "2.0.1";
 
 /* coleções da tela -> tabelas do banco */
 const COL = {
@@ -469,9 +469,10 @@ async function usuariosCriar(request, env, eu) {
   const b = await corpo(request, 10_000);
   const nome = String(b.nome || "").trim(), email = String(b.email || "").trim().toLowerCase(), papel = b.papel || "colaborador";
   if (!nome) falha(400, "Informe o nome.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) falha(400, "Informe um e-mail válido.");
+  /* o acesso pode ser um e-mail ou um nome de usuário (letras, números, ponto, hífen ou sublinhado) */
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/^[a-z0-9._-]{3,40}$/.test(email)) falha(400, "Informe um e-mail ou um usuário (só letras, números, ponto, hífen ou sublinhado).");
   if (!PAPEIS.includes(papel)) falha(400, "Perfil inválido.");
-  if (await env.DB.prepare("SELECT 1 FROM usuarios WHERE email = ?").bind(email).first()) falha(409, "Já existe um usuário com este e-mail.");
+  if (await env.DB.prepare("SELECT 1 FROM usuarios WHERE email = ?").bind(email).first()) falha(409, "Já existe um usuário com este acesso.");
   const temp = senhaTemporaria();
   const h = await novaSenhaHash(temp);
   await env.DB.prepare("INSERT INTO usuarios (email, nome, iniciais, papel, senha_hash, senha_sal, senha_iter, trocar_senha) VALUES (?, ?, ?, ?, ?, ?, ?, 1)")
