@@ -22,6 +22,13 @@
   "kv_namespaces": [
     { "binding": "BACKUPS", "id": "daef3f45b5e643bca2bff1627caa1958" }
   ],
+  // Google Drive: pasta "Monte Fuji Dedetizadora e Desentupidora", modelo da OS (05 - Modelos) e a conta que autoriza.
+  // GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET são segredos: ficam só no painel da Cloudflare (Settings › Variables and Secrets).
+  "vars": {
+    "DRIVE_RAIZ": "1Xb20d77x_1GdydM1Gm526Lk4zSquMLKS",
+    "OS_MODELO": "1844GEpPlzp5QYl76sOZ3YYbu-fT0t4JMuwGRgSJFzGU",
+    "GOOGLE_CONTA": "atendimento@mfuji.com.br"
+  },
   // backup diário dos dados às 6h UTC (3h em Brasília)
   "triggers": { "crons": ["0 6 * * *"] },
   "observability": { "enabled": true }

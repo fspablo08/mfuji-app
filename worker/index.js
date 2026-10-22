@@ -4,7 +4,7 @@
  * - faz um backup diário no KV (env.BACKUPS)
  */
 
-const APP_VERSAO = "2.0.1";
+const APP_VERSAO = "2.0.2";
 
 /* coleções da tela -> tabelas do banco */
 const COL = {
@@ -89,6 +89,13 @@ async function rotear(request, env, ctx) {
     const bm = p.match(/^\/api\/backups\/([\w.:-]+)$/);
     if (bm && m === "GET") return backupGuardado(env, eu, bm[1]);
     if (p === "/api/importar" && m === "POST") return importar(request, env, eu);
+    if (p === "/api/google" && m === "GET") return googleStatus(env);
+    if (p === "/api/google/conectar" && m === "GET") return googleConectar(url, env, eu);
+    if (p === "/api/google/retorno" && m === "GET") return googleRetorno(request, url, env, eu);
+    if (p === "/api/google/desconectar" && m === "POST") return googleDesconectar(env, eu);
+    if (p === "/api/drive/pastas" && m === "GET") return drivePastas(url, env);
+    if (p === "/api/os" && m === "POST") return osCriar(request, env, eu);
+    if (p === "/api/os/drive" && m === "POST") return osSalvarDrive(request, env, eu);
     falha(404, "Rota não encontrada.");
   }
 
@@ -500,4 +507,255 @@ async function usuariosAlterar(request, env, eu, id) {
   if (b.redefinir_senha || !ativo) stmts.push(env.DB.prepare("DELETE FROM sessoes WHERE usuario_id = ?").bind(id));
   await env.DB.batch(stmts);
   return json({ ok: true, senha_temporaria: temp });
+}
+
+/* ===== Google Drive: ordens de serviço na pasta de cada cliente =====
+ * A conta Google da empresa autoriza uma vez (Configurações › Integrações › Conectar). O servidor guarda só a
+ * autorização (refresh token) na tabela "integracoes" e pede um acesso temporário ao Google quando precisa.
+ * Segredos (Cloudflare › mfuji-app › Settings › Variables and Secrets): GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.
+ * Variáveis (wrangler.jsonc): DRIVE_RAIZ (pasta "Monte Fuji Dedetizadora e Desentupidora") e OS_MODELO (documento modelo).
+ * Pastas: RAIZ / "01 - 2026" / "01 - Clientes Ativos" (ou Avulsos, Orçamentos) / pasta do cliente. */
+const G_ESCOPOS = "openid email https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents";
+const G_PASTA = "application/vnd.google-apps.folder";
+let gAcesso = null; /* acesso temporário guardado enquanto o servidor está de pé: { token, expira } */
+let gPastasCache = null; /* { em, lista } */
+/* GOOGLE_TESTE (só no teste local, test/drive.mjs): manda os pedidos ao Google para um Google simulado */
+function gFetch(env, endereco, init) { return fetch(env.GOOGLE_TESTE ? endereco.replace("https://", env.GOOGLE_TESTE + "/") : endereco, init); }
+
+function gConfigurado(env) { return !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.DRIVE_RAIZ && env.OS_MODELO); }
+async function gLer(env, chave) { return await env.DB.prepare("SELECT valor FROM integracoes WHERE chave = ?").bind(chave).first("valor"); }
+
+async function googleStatus(env) {
+  const conta = gConfigurado(env) ? await gLer(env, "google_conta") : null;
+  const ligado = conta ? !!(await gLer(env, "google_refresh")) : false;
+  return json({ configurado: gConfigurado(env), conectado: ligado, conta: ligado ? conta : null, raiz: env.DRIVE_RAIZ || null });
+}
+
+function cookieEstado(v, maxAge) { return `mf_gestado=${v}; Path=/api/google; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`; }
+
+async function googleConectar(url, env, eu) {
+  if (eu.papel !== "admin") falha(403, "Só o administrador conecta o Google Drive.");
+  if (!gConfigurado(env)) falha(409, "Falta configurar a ligação com o Google (veja o guia de configuração).");
+  const estado = b64url(crypto.getRandomValues(new Uint8Array(24)));
+  const q = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID, redirect_uri: url.origin + "/api/google/retorno", response_type: "code",
+    scope: G_ESCOPOS, access_type: "offline", prompt: "consent", include_granted_scopes: "true", state: estado,
+    login_hint: env.GOOGLE_CONTA || "atendimento@mfuji.com.br",
+  });
+  return new Response(null, { status: 302, headers: { Location: "https://accounts.google.com/o/oauth2/v2/auth?" + q, "Set-Cookie": cookieEstado(estado, 600), "Cache-Control": "no-store" } });
+}
+
+async function googleRetorno(request, url, env, eu) {
+  const volta = (r) => new Response(null, { status: 302, headers: { Location: url.origin + "/?google=" + r + "#cfg", "Set-Cookie": cookieEstado("", 0), "Cache-Control": "no-store" } });
+  if (eu.papel !== "admin" || !gConfigurado(env)) return volta("erro");
+  const m = (request.headers.get("Cookie") || "").match(/(?:^|;\s*)mf_gestado=([A-Za-z0-9_-]{20,})/);
+  const estado = url.searchParams.get("state") || "";
+  if (!m || !iguais(m[1], estado)) return volta("erro");
+  const code = url.searchParams.get("code");
+  if (!code) return volta("cancelado");
+  const r = await gFetch(env, "https://oauth2.googleapis.com/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: url.origin + "/api/google/retorno", grant_type: "authorization_code" }),
+  });
+  const t = await r.json().catch(() => ({}));
+  if (!r.ok || !t.refresh_token) { console.error("google token", r.status, t.error); return volta("erro"); }
+  if (!String(t.scope || "").includes("auth/drive") || !String(t.scope || "").includes("auth/documents")) return volta("permissoes");
+  let conta = "";
+  try { conta = JSON.parse(atob(t.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).email || ""; } catch { /* sem e-mail, segue */ }
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO integracoes (chave, valor, atualizado_por) VALUES ('google_refresh', ?1, ?2) ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor, atualizado_em = datetime('now'), atualizado_por = excluded.atualizado_por").bind(t.refresh_token, eu.id),
+    env.DB.prepare("INSERT INTO integracoes (chave, valor, atualizado_por) VALUES ('google_conta', ?1, ?2) ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor, atualizado_em = datetime('now'), atualizado_por = excluded.atualizado_por").bind(conta, eu.id),
+  ]);
+  gAcesso = { token: t.access_token, expira: Date.now() + (t.expires_in - 120) * 1000 };
+  gPastasCache = null;
+  return volta("ok");
+}
+
+async function googleDesconectar(env, eu) {
+  if (eu.papel !== "admin") falha(403, "Só o administrador desconecta o Google Drive.");
+  const rt = await gLer(env, "google_refresh");
+  await env.DB.prepare("DELETE FROM integracoes WHERE chave IN ('google_refresh','google_conta')").run();
+  gAcesso = null; gPastasCache = null;
+  if (rt) await gFetch(env, "https://oauth2.googleapis.com/revoke", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token: rt }) }).catch(() => {});
+  return json({ ok: true });
+}
+
+/* acesso temporário (1 hora) a partir da autorização guardada */
+async function gToken(env) {
+  if (!gConfigurado(env)) falha(409, "O Google Drive ainda não foi configurado no sistema.");
+  if (gAcesso && gAcesso.expira > Date.now()) return gAcesso.token;
+  const rt = await gLer(env, "google_refresh");
+  if (!rt) falha(409, "O Google Drive não está conectado. O administrador conecta em Configurações › Integrações.");
+  const r = await gFetch(env, "https://oauth2.googleapis.com/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ refresh_token: rt, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, grant_type: "refresh_token" }),
+  });
+  const t = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    console.error("google refresh", r.status, t.error);
+    if (t.error === "invalid_grant") {
+      await env.DB.prepare("DELETE FROM integracoes WHERE chave = 'google_refresh'").run();
+      falha(409, "A autorização do Google expirou ou foi retirada. O administrador precisa conectar de novo em Configurações › Integrações.");
+    }
+    falha(502, "O Google não respondeu. Tente de novo em instantes.");
+  }
+  gAcesso = { token: t.access_token, expira: Date.now() + (t.expires_in - 120) * 1000 };
+  return gAcesso.token;
+}
+
+async function gApi(env, metodo, endereco, corpoJson) {
+  const tok = await gToken(env);
+  const r = await gFetch(env, endereco, { method: metodo, headers: { Authorization: "Bearer " + tok, ...(corpoJson ? { "Content-Type": "application/json" } : {}) }, body: corpoJson ? JSON.stringify(corpoJson) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    console.error("google api", metodo, endereco.split("?")[0], r.status, j.error && j.error.message);
+    if (r.status === 401) gAcesso = null;
+    if (r.status === 404) falha(404, "O Google Drive não encontrou a pasta ou o modelo. Confira se a conta conectada tem acesso a eles.");
+    if (r.status === 403) falha(403, "A conta Google conectada não tem permissão para gravar nesta pasta.");
+    falha(502, "O Google Drive recusou o pedido. Tente de novo em instantes.");
+  }
+  return j;
+}
+
+/* subpastas (só pastas, fora da lixeira) de uma lista de pastas */
+async function gFilhas(env, pais) {
+  const out = [];
+  for (const parte of fatias(pais, 40)) {
+    const q = `(${parte.map((id) => `'${id.replace(/[^\w-]/g, "")}' in parents`).join(" or ")}) and mimeType = '${G_PASTA}' and trashed = false`;
+    let pagina = "";
+    do {
+      const p = new URLSearchParams({ q, fields: "nextPageToken,files(id,name,parents)", pageSize: "1000", supportsAllDrives: "true", includeItemsFromAllDrives: "true", ...(pagina ? { pageToken: pagina } : {}) });
+      const j = await gApi(env, "GET", "https://www.googleapis.com/drive/v3/files?" + p);
+      out.push(...(j.files || []));
+      pagina = j.nextPageToken || "";
+    } while (pagina);
+  }
+  return out;
+}
+
+/* pastas de clientes: RAIZ / ano / grupo (Clientes Ativos, Avulsos, Orçamentos...) / cliente */
+async function pastasClientes(env, forcar) {
+  if (!forcar && gPastasCache && Date.now() - gPastasCache.em < 60_000) return gPastasCache.lista;
+  const anos = (await gFilhas(env, [env.DRIVE_RAIZ])).filter((f) => /\b20\d\d\b/.test(f.name));
+  const grupos = anos.length ? (await gFilhas(env, anos.map((f) => f.id))).filter((f) => !/financeiro/i.test(f.name)) : [];
+  const nomeAno = new Map(anos.map((f) => [f.id, f.name.match(/\b20\d\d\b/)[0]]));
+  const nomeGrupo = new Map(grupos.map((f) => [f.id, nomeAno.get(f.parents[0]) + " / " + f.name.replace(/^\s*\d+\s*-\s*/, "")]));
+  const lista = grupos.length ? (await gFilhas(env, grupos.map((f) => f.id))).map((f) => ({ id: f.id, nome: f.name.trim(), grupo: nomeGrupo.get(f.parents[0]) || "" })) : [];
+  lista.sort((a, b) => b.grupo.localeCompare(a.grupo) || a.nome.localeCompare(b.nome, "pt-BR"));
+  gPastasCache = { em: Date.now(), lista };
+  return lista;
+}
+
+async function drivePastas(url, env) {
+  return json({ pastas: await pastasClientes(env, url.searchParams.get("atualizar") === "1") });
+}
+
+/* ===== ordens de serviço geradas pelo servidor =====
+ * Registro da OS: [número, data, cliente, serviço (resumo), técnico, valor, status, {sv, obs, pasta, doc}] */
+function hojeBr() { return new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); }
+function dataExtenso(d) {
+  const M = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const [a, m, dia] = d.split("-").map(Number);
+  return `${dia} de ${M[m - 1]} de ${a}`;
+}
+function textoOuTraco(s) { s = String(s || "").trim(); return s || "-"; }
+
+/* cria o documento a partir do modelo, já na pasta do cliente */
+async function gerarDocOS(env, os, cli, pasta) {
+  const extra = os[7] || {};
+  const nome = `${os[0]} - Termo de execução de serviço - ${os[2]}`.slice(0, 250);
+  const copia = await gApi(env, "POST", `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(env.OS_MODELO)}/copy?supportsAllDrives=true&fields=id,name,webViewLink`, { name: nome, parents: [pasta.id] });
+  const campos = {
+    NOME: textoOuTraco(cli.nome || os[2]),
+    DOC: textoOuTraco(cli.doc),
+    ENDERECO: textoOuTraco(String(cli.end || "").replace(/ · /g, ", ")),
+    RESPONSAVEL: textoOuTraco(String(cli.contato || "").split("(")[0]),
+    TELEFONE: textoOuTraco(cli.tel),
+    SERVICO: textoOuTraco(extra.sv || os[3]).toUpperCase(),
+    OBS: textoOuTraco(extra.obs),
+    DATA: dataExtenso(os[1]),
+  };
+  try {
+    await gApi(env, "POST", `https://docs.googleapis.com/v1/documents/${copia.id}:batchUpdate`, {
+      requests: Object.entries(campos).map(([k, v]) => ({ replaceAllText: { containsText: { text: `{{${k}}}`, matchCase: true }, replaceText: v } })),
+    });
+  } catch (e) {
+    /* documento pela metade não fica na pasta do cliente */
+    await gApi(env, "PATCH", `https://www.googleapis.com/drive/v3/files/${copia.id}?supportsAllDrives=true`, { trashed: true }).catch(() => {});
+    throw e;
+  }
+  return { id: copia.id, url: copia.webViewLink || `https://docs.google.com/document/d/${copia.id}/edit`, nome: copia.name || nome };
+}
+
+async function pastaValida(env, id) {
+  if (typeof id !== "string" || !/^[\w-]{10,100}$/.test(id)) return null;
+  return (await pastasClientes(env)).find((f) => f.id === id) || (await pastasClientes(env, true)).find((f) => f.id === id) || null;
+}
+
+async function proximoNumeroOS(env, ano) {
+  const rs = await env.DB.prepare("SELECT chave FROM ordens_servico WHERE chave LIKE ?").bind(`OS-${ano}-%`).all();
+  return rs.results.reduce((m, x) => Math.max(m, parseInt(x.chave.split("-")[2], 10) || 0), 0) + 1;
+}
+
+async function gravarOS(env, os, uid, nova) {
+  const r = await aplicar(env, [{ c: "OSL", k: os[0], d: JSON.stringify(os), n: nova ? 1 : 0 }], uid, "sync");
+  return !r.rejeitados.length;
+}
+
+/* POST /api/os: registra a OS (número dado pelo servidor) e, com o Drive conectado, salva o documento na pasta do cliente */
+async function osCriar(request, env, eu) {
+  if (eu.papel === "leitura") falha(403, "Seu acesso é somente para consulta.");
+  const b = await corpo(request, 50_000);
+  const cli = await env.DB.prepare("SELECT dados FROM clientes WHERE chave = ? AND excluido = 0").bind(String(b.cli || "")).first("dados");
+  if (!cli) falha(400, "Escolha um cliente cadastrado.");
+  const c = JSON.parse(cli);
+  const sv = String(b.servico || "").trim(), obs = String(b.obs || "").trim();
+  if (!sv) falha(400, "Descreva o serviço a ser executado.");
+  if (sv.length > 3000 || obs.length > 5000) falha(400, "Texto longo demais.");
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(b.data || "") ? b.data : hojeBr();
+  /* pasta: a escolhida na tela, conferida na lista real do Drive */
+  let pasta = null, aviso = null, doc = null;
+  const usarDrive = b.drive !== false && gConfigurado(env) && !!(await gLer(env, "google_refresh"));
+  if (usarDrive) {
+    pasta = await pastaValida(env, b.pastaId || c.pastaId);
+    if (!pasta) falha(400, "Escolha a pasta do cliente no Google Drive antes de gerar a OS.");
+  }
+  const ano = hojeBr().slice(0, 4);
+  let os = null;
+  for (let n = await proximoNumeroOS(env, ano), tent = 0; tent < 5; n++, tent++) {
+    const cand = [`OS-${ano}-${String(n).padStart(4, "0")}`, data, c.nome, sv.length > 60 ? sv.slice(0, 58) + "…" : sv, "—", 0, "Aguardando assinatura", { sv, obs, ...(pasta ? { pasta: { id: pasta.id, nome: pasta.grupo + " / " + pasta.nome } } : {}) }];
+    if (await gravarOS(env, cand, eu.id, true)) { os = cand; break; }
+  }
+  if (!os) falha(409, "Não consegui reservar um número de OS. Tente de novo.");
+  if (usarDrive) {
+    try {
+      doc = await gerarDocOS(env, os, c, pasta);
+      os[7].doc = doc;
+      await gravarOS(env, os, eu.id, false);
+    } catch (e) {
+      /* a OS fica registrada; dá para tentar de novo pelo botão "Salvar no Drive" da lista */
+      if (!(e instanceof Resposta)) console.error(e && e.stack || e);
+      aviso = (e instanceof Resposta && (await e.res.json().catch(() => ({}))).erro) || "Não consegui salvar no Google Drive.";
+    }
+  } else aviso = gConfigurado(env) ? "O Google Drive não está conectado: a OS foi registrada sem o documento." : null;
+  return json({ ok: true, numero: os[0], doc, pasta: os[7].pasta || null, aviso });
+}
+
+/* POST /api/os/drive: tenta de novo salvar no Drive uma OS já registrada */
+async function osSalvarDrive(request, env, eu) {
+  if (eu.papel === "leitura") falha(403, "Seu acesso é somente para consulta.");
+  const b = await corpo(request, 10_000);
+  const d = await env.DB.prepare("SELECT dados FROM ordens_servico WHERE chave = ? AND excluido = 0").bind(String(b.numero || "")).first("dados");
+  if (!d) falha(404, "OS não encontrada.");
+  const os = JSON.parse(d);
+  if (!os[7] || typeof os[7] !== "object") os[7] = { sv: os[3], obs: "" };
+  if (os[7].doc) return json({ ok: true, numero: os[0], doc: os[7].doc });
+  const cli = await env.DB.prepare("SELECT dados FROM clientes WHERE excluido = 0 AND nome = ? LIMIT 1").bind(os[2]).first("dados");
+  const c = cli ? JSON.parse(cli) : { nome: os[2] };
+  const pasta = await pastaValida(env, b.pastaId || (os[7].pasta && os[7].pasta.id) || c.pastaId);
+  if (!pasta) falha(400, "Escolha a pasta do cliente no Google Drive.");
+  os[7].pasta = { id: pasta.id, nome: pasta.grupo + " / " + pasta.nome };
+  os[7].doc = await gerarDocOS(env, os, c, pasta);
+  await gravarOS(env, os, eu.id, false);
+  return json({ ok: true, numero: os[0], doc: os[7].doc });
 }

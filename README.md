@@ -22,4 +22,6 @@ node scripts/sql-novo-admin.mjs "Teste" teste@mfuji.test > /tmp/admin.sql && npx
 npx wrangler dev        # http://localhost:8787
 ```
 
-Publicação, usuários, backup e custos: `COMO-PUBLICAR.md`.
+Publicação, usuários, backup e custos: `COMO-PUBLICAR.md`. Ligação com o Google Drive: `COMO-CONECTAR-GOOGLE.md`.
+
+Teste do Google Drive com um Google simulado: `EMAIL=... SENHA=... node test/drive.mjs` (sobe o próprio `wrangler dev`).

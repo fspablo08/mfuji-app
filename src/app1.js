@@ -33,7 +33,7 @@ function ic(n,s){return '<svg width="'+(s||15)+'" height="'+(s||15)+'" viewBox="
 
 var NAV=[
  ["Principal",[["dash","Dashboard","Início","“Proteção que evolui. Veja a operação de hoje num só lugar.”"],["agenda","Agenda","Agenda","Visitas e serviços do mês, por dia, semana, mês ou ano."],["assist","Assistente","Assistente","Pergunte, peça rascunhos de resposta e sugestões de datas."],["notas","Anotações","Anotações","O que fazer hoje, o que está pendente e o que ficou para trás."]]],
- ["Operação",[["os","Ordens de serviço","Ordens de serviço","Preencha o formulário e imprima a OS no modelo padrão da Monte Fuji."],["cli","Clientes","Clientes","Cadastro, histórico de serviços e garantias de cada cliente."],["mail","E-mails","E-mails","Caixa do Gmail: o que responder, o que está pendente e o que foi enviado."]]],
+ ["Operação",[["os","Ordens de serviço","Ordens de serviço","Preencha o formulário e a OS vai direto para a pasta do cliente no Google Drive."],["cli","Clientes","Clientes","Cadastro, histórico de serviços e garantias de cada cliente."],["mail","E-mails","E-mails","Caixa do Gmail: o que responder, o que está pendente e o que foi enviado."]]],
  ["Financeiro",[["rec","A receber","A receber","Cobranças de clientes avulsos: nota fiscal, envio da cobrança e recebimento."]]],
  ["RH",[["func","Funcionários","Funcionários","Dados, documentos, uniformes e EPIs de cada colaborador."]]],
  ["Preferências",[["cfg","Configurações","Configurações","Empresa, integrações, usuários e notificações."],["help","Central de ajuda","Central de ajuda","Dúvidas frequentes, atalhos e contato do suporte."]]]
@@ -78,7 +78,7 @@ var AI={
   agenda:[["Como cadastro uma visita?","Clique em <b>+ Novo agendamento</b>, digite o cliente, marque os serviços, adicione uma ou mais datas e escolha a garantia."],["Como mando os horários para a equipe?","Clique em <b>Horários de amanhã</b>, confira o texto e use <b>Copiar</b> para colar no grupo do WhatsApp."]],
   assist:[["O que você vai saber da Monte Fuji?","Quando você me enviar a tabela de preços, os procedimentos de cada serviço, as regras de garantia e modelos de resposta, eu passo a usar essas informações nas sugestões."]],
   notas:[["Como uso as anotações?","Clique em <b>+ Adicionar cartão</b> na coluna desejada, dê dois cliques no título para editar e arraste entre as colunas. O botão de data define o prazo."]],
-  os:[["Como gero uma OS?","Escolha o cliente, descreva o serviço, preencha as observações e a data. A pré-visualização segue o modelo de vocês."]],
+  os:[["Como gero uma OS?","Escolha o cliente, descreva o serviço e clique em <b>Gerar OS e salvar no Drive</b>. O termo de execução vai direto para a pasta do cliente no Google Drive."]],
   cli:[["Como cadastro um cliente?","Clique em <b>Novo cliente</b> e digite o CNPJ: razão social, endereço e telefone vêm da Receita Federal."]],
   mail:[["Quando os e-mails aparecem aqui?","Assim que as caixas do Gmail (atendimento, financeiro e comercial) forem conectadas."]],
   rec:[["Como lanço uma cobrança?","Clique em <b>+ Novo lançamento</b>, digite o CNPJ do cliente avulso, o valor, a nota fiscal e quando a cobrança foi enviada."]],
