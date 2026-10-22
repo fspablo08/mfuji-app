@@ -48,107 +48,6 @@ function openDriveModal(q,cb,cliAtual){
   _drvCb=cb;_drvCli=cliAtual||null;$("#dvQ").value=q||"";draw();m.hidden=false;setTimeout(function(){$("#dvQ").focus()},30);
   gStatus().then(function(st){if(!st.conectado){erro({erro:"O Google Drive não está conectado. O administrador conecta em Configurações › Integrações."});return}gPastas().then(draw,erro)});
 }
-VIEWS.os=function(v){
-  v.innerHTML='<div class="grid">'
-  +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Ordens neste mês</span><button class="plus" type="button" id="osNewTop" aria-label="Nova OS">+</button></div><b class="num" id="osMes"></b><p class="hs" id="osMesS"></p></div>'
-  +'<div class="card c9"><div class="ch"><h4>Como funciona</h4><span class="pill go">Google Drive · Monte Fuji Dedetizadora e Desentupidora</span></div><div class="kp" style="--n:3">'
-   +'<div><span class="sq">'+ic("drive",14)+'</span><span class="t">1. Busque</span><b style="font-size:13px;white-space:normal">O cliente: a pasta dele no Drive vem junto</b></div>'
-   +'<div><span class="sq">'+ic("os",14)+'</span><span class="t">2. Preencha</span><b style="font-size:13px;white-space:normal">Serviço, observações e data</b></div>'
-   +'<div><span class="sq">'+ic("print",14)+'</span><span class="t">3. Gere</span><b style="font-size:13px;white-space:normal">Termo de execução salvo na pasta do cliente</b></div></div></div>'
-  +'<div class="card c6"><div class="ch"><h4>Nova ordem de serviço</h4><div class="steps"><span class="on" id="stp1"><i>1</i>Cliente</span><span id="stp2"><i>2</i>Serviço</span><span><i>3</i>Gerar e salvar</span></div></div>'
-   +'<div class="fld"><div class="lrow"><label for="oCli">Cliente</label><span style="display:flex;gap:12px"><button class="lnk" type="button" id="oDrvBusca">'+ic("drive",11)+' Começar pela pasta do Drive</button><button class="lnk" type="button" id="oNewCli">'+ic("plus",11)+' Novo cliente</button></span></div>'+cliPick("oCli","")+'</div>'
-   +'<div class="dbox" id="oDrive"></div>'
-   +'<div class="form">'
-   +'<div class="fld full"><label for="oSv">Serviço a ser executado</label><textarea id="oSv" rows="2" placeholder="Ex.: desobstrução dos vasos do banheiro feminino do 13º e 23º andar e PNE do 4º"></textarea><small class="hint">Sai em letras maiúsculas na OS, como no modelo.</small></div>'
-   +'<div class="fld full"><label for="oObs">Observações</label><textarea id="oObs" placeholder="Opcional. Se ficar vazio, a OS mostra “-”"></textarea></div>'
-   +'<div class="fld"><label for="oD">Data</label><input id="oD" type="date" value="'+TD+'"></div></div>'
-   +'<div class="drive">'+ic("drive",15)+'Arquivo: <code id="oPath"></code></div>'
-   +'<div class="acts"><button class="ghost" type="button" id="oPrint">'+ic("print",13)+' Imprimir</button><button class="cta" type="button" id="oGen">Gerar OS</button></div></div>'
-  +'<div class="card c6"><div class="ch"><h4>Pré-visualização</h4><span class="pill ok">Modelo Monte Fuji · Termo de execução</span></div><div class="a4wrap"><div class="a4" id="oDoc"></div></div></div>'
-  +'<div class="card c12"><div class="ch"><h4>Ordens emitidas</h4><div class="r"><div class="filt" role="group" aria-label="Status"><button type="button" aria-pressed="true">Todas</button><button type="button" aria-pressed="false">Concluída</button><button type="button" aria-pressed="false">Aguardando assinatura</button><button type="button" aria-pressed="false">Cancelada</button></div></div></div><div class="scroll-x"><table class="tb" id="osTb"><thead><tr><th>Número ⇅</th><th>Cliente</th><th>Serviço</th><th>Status</th><th>Arquivo</th></tr></thead><tbody></tbody></table></div></div>'
-  +'</div>';
-  function cli(){var n=$("#oCli").value.trim();return CLIENTES.find(function(c){return c.nome===n})}
-  function svs(){var t=$("#oSv").value.trim();return t?[t]:[]}
-  var _sug=null;
-  function drive(){
-    var c=cli(),b=$("#oDrive");_sug=null;
-    if(!c){b.className="dbox";b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>Cliente não encontrado</b><small>Escolha um cliente da lista ou cadastre um novo.</small></span></div>';return}
-    if(GDRIVE.st&&!GDRIVE.st.conectado){b.className="dbox none";b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>Google Drive não conectado</b><small>'+(EU.papel==="admin"?(GDRIVE.st.configurado?'Conecte em Configurações › Integrações para as OS irem direto para a pasta do cliente.':'Falta configurar a ligação com o Google (veja o guia).'):'Peça ao administrador para conectar em Configurações › Integrações.')+' A OS é registrada mesmo assim.</small></span>'+(EU.papel==="admin"?'<a class="ghost" href="#cfg">Configurações</a>':'')+'</div>';return}
-    var pid=c.pastaId,pn=c.pasta,auto=false;
-    if(!pid){_sug=gSugestao(c);if(_sug){pid=_sug.id;pn=pastaNome(_sug);auto=true}}
-    if(!pid){b.className="dbox none";
-      if(!GDRIVE.pastas&&gLigado())gPastas().then(function(){if(cli()===c)drive()},function(){});
-      b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>'+(GDRIVE.pastas||!gLigado()?'Pasta do cliente não encontrada':'Procurando a pasta no Drive…')+'</b><small>'+(GDRIVE.pastas?'Nenhuma pasta com o nome de '+esc(c.nome)+'. Escolha a pasta uma vez e o sistema guarda.':'Pasta de '+esc(c.nome)+' no Google Drive.')+'</small></span><button class="ghost" type="button" id="oLink">Escolher pasta</button></div>';return}
-    b.className="dbox";var fs=osDoCliente(c).filter(function(o){return o[7]&&o[7].doc});
-    b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>'+esc(pn)+'</b><small>'+(auto?'Encontrada pelo nome do cliente. Confira antes de gerar.':'Pasta do cliente no Google Drive')+' · '+fs.length+' OS salva'+(fs.length===1?'':'s')+'</small></span><a class="ghost" href="'+pastaUrl(pid)+'" target="_blank" rel="noopener">Abrir pasta ↗</a><button class="dots" type="button" id="oLink" title="Trocar pasta" aria-label="Trocar pasta">⇄</button></div>'
-     +(fs.length?'<ul class="fls">'+fs.slice(0,3).map(function(o){return '<li><span class="ft os">DOC</span><span class="grow"><a href="'+esc(o[7].doc.url)+'" target="_blank" rel="noopener">'+esc(o[7].doc.nome)+'</a></span><span class="sub">'+dmy(o[1])+'</span></li>'}).join("")+'</ul>':'');
-  }
-  function doc(){
-    var c=cli()||{nome:$("#oCli").value.trim()||"Cliente",razao:$("#oCli").value.trim()||"—",doc:"—",contato:"—",tel:"—",end:"—"},d=$("#oD").value||TD,sv=svs();
-    var pp=(cli()&&cli().pastaId)?c.pasta:_sug?pastaNome(_sug):"";
-    $("#oPath").textContent=nextOS()+" - Termo de execução de serviço - "+c.nome+(gLigado()?(pp?" · pasta "+pp:" · escolha a pasta"):"");
-    $("#oGen").textContent=gLigado()?"Gerar OS e salvar no Drive":"Registrar OS";
-    $("#stp1").className=cli()?"ok":"on";$("#stp1").firstChild.textContent=cli()?"✓":"1";$("#stp2").className=cli()?"on":"";
-    var dd=new Date(d+"T12:00"),dt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear(),esc=function(x){return String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;")};
-    var resp=c.contato.split("(")[0].trim(),obs=$("#oObs").value.trim();
-    $("#oDoc").innerHTML='<div class="tes"><img class="lg" alt="Monte Fuji Desentupidora e Dedetizadora" src="'+LOGO+'"><h1>Termo de execução de serviço</h1>'
-    +'<table><colgroup><col style="width:22%"><col style="width:31%"><col></colgroup><tr><th colspan="3">1. Identificação do local tratado</th></tr><tr><td class="k">Nome:</td><td colspan="2">'+esc(c.nome)+'</td></tr><tr><td class="k">CPF/CNPJ:</td><td colspan="2">'+esc(c.doc)+'</td></tr><tr><td class="k">Endereço:</td><td colspan="2">'+esc(c.end.replace(" · ",", "))+'</td></tr><tr><td class="k">Responsável 1:</td><td>'+esc(resp)+'</td><td><span class="k">Celular/Tel:</span> '+esc(c.tel)+'</td></tr></table>'
-    +'<table class="b2"><tr><th>2. Serviços a serem executados</th></tr></table><p class="sv">'+(sv.length?esc(sv[0]).toUpperCase():'<span class="ph">DESCREVA O SERVIÇO NO FORMULÁRIO</span>')+'</p>'
-    +'<h2>Observações</h2><p class="ob">'+(obs?esc(obs).replace(/\n/g,"<br>"):"-")+'</p>'
-    +'<p class="dec">A Monte Fuji Desentupidora e Dedetizadora vem por meio desta declarar que executou o(s) serviço(s) acima citado(s) no(s) Cliente(s)/endereço(s) informado(s), utilizando produto(s), equipamento(s) e técnica(s) adequada(s), garantindo a qualidade, segurança e eficácia na realização do(s) procedimento(s).</p><div class="ln"></div><div class="ln"></div><div class="ln"></div>'
-    +'<table class="em"><colgroup><col style="width:22%"><col style="width:31%"><col></colgroup><tr><th colspan="3">3. Em caso de emergência, contatar:</th></tr><tr><td class="k">Bombeiros:</td><td colspan="2">193</td></tr><tr><td class="k">Samu:</td><td colspan="2">192</td></tr><tr><td class="k">Monte Fuji:</td><td colspan="2">(11) 9 9742-0106</td></tr></table>'
-    +'<p class="dt">'+dt+'</p>'
-    +'<div class="sg"><div><b>Responsável Técnico</b><div class="ass">assinatura digitalizada</div><span>Biólogo Tarcísio George - CRBio 94338/01-D</span></div><div><b>Assinatura do responsável pelo acompanhamento</b><div class="ass e"></div><span>Início ________ &nbsp;Término ________</span></div></div>'
-    +'<div class="ft2">Monte Fuji DDT e DS | CNPJ: 05.889.593/0001-02 | R. Anhanguera, 549 - Piratininga, Osasco/SP | (11) 9 9742-0106 | (11) 3609-5222</div></div>';
-  }
-  function upd(){drive();doc()}
-  function printOS(){if(!cli()){toast("Escolha um cliente cadastrado.");return}var w=window.open("","_blank");if(!w){toast("Libere as janelas pop-up para imprimir.");return}
-    var css=Array.prototype.map.call(document.querySelectorAll("style"),function(x){return x.textContent}).join("\n");
-    w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+nextOS()+'</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap"><style>'+css+' body{background:#fff;margin:0;padding:0}.a4{max-width:none;box-shadow:none;border:0;margin:0 auto;width:190mm}@page{size:A4;margin:10mm}</style></head><body><div class="a4">'+$("#oDoc").innerHTML+'</div><script>setTimeout(function(){print()},500)<\/script></body></html>');w.document.close()}
-  function table(f){
-    var mk=TD.slice(0,7),om=OSL.filter(function(o){return String(o[1]).slice(0,7)===mk});$("#osMes").innerHTML=om.length+'<small>OS</small>';$("#osMesS").textContent=MES[TODAY.getMonth()]+" · "+OSL.length+" no total";
-    $("#osTb tbody").innerHTML=OSL.filter(function(o){return !f||f==="Todas"||o[6]===f}).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[2]+'</td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td><td>'+osArquivo(o)+'</td></tr>'}).join("")||'<tr><td colspan="5" class="mut">Nenhuma ordem de serviço emitida ainda.</td></tr>';
-  }
-  /* começou pela pasta: acha o cliente dono dela, ou liga a pasta ao cliente escolhido */
-  function pickFolder(f){
-    var c=CLIENTES.find(function(x){return x.pastaId===f.id})||CLIENTES.filter(function(x){return !x.pastaId&&gNota(x,f)===1})[0];
-    if(c){if(!c.pastaId){c.pastaId=f.id;c.pasta=pastaNome(f);dbSave()}$("#oCli").value=c.nome;upd();toast("Pasta de "+c.nome+" selecionada.");return}
-    var cur=cli();
-    if(cur&&!cur.pastaId){linkFolder(cur,f);return}
-    openCliModal(f.nome,function(nc){nc.pastaId=f.id;nc.pasta=pastaNome(f);dbSave();$("#oCli").value=nc.nome;upd()});toast("Esta pasta ainda não tem cliente no sistema. Complete o cadastro.");
-  }
-  function linkFolder(c,f){var dono=CLIENTES.find(function(x){return x.pastaId===f.id&&x!==c});if(dono){toast("Essa pasta já é de "+dono.nome+".");return}
-    c.pastaId=f.id;c.pasta=pastaNome(f);dbSave();upd();toast("Pasta “"+f.nome+"” ligada a "+c.nome+".")}
-  function gerar(){var c=cli();if(!c){toast("Escolha um cliente cadastrado.");return}if(!svs().length){toast("Descreva o serviço a ser executado.");$("#oSv").focus();return}
-    var pid=c.pastaId||(_sug&&_sug.id)||"",f=_sug;
-    if(gLigado()&&!pid){toast("Escolha a pasta do cliente no Google Drive.");openDriveModal("",function(x){linkFolder(c,x);gerar()},c);return}
-    var bt=$("#oGen");bt.disabled=true;bt.textContent=gLigado()?"Salvando no Drive…":"Registrando…";
-    api("POST","/api/os",{cli:c.id,servico:svs()[0],obs:$("#oObs").value.trim(),data:$("#oD").value||TD,pastaId:pid,drive:gLigado()}).then(function(r){
-      if(!c.pastaId&&f&&r.pasta&&r.pasta.id===f.id){c.pastaId=f.id;c.pasta=pastaNome(f);dbSave()}
-      return dbPoll(true).then(function(){$("#oSv").value="";$("#oObs").value="";table();upd();
-        toast(r.doc?r.numero+" salva na pasta do cliente no Drive.":r.numero+" registrada."+(r.aviso?" "+r.aviso:""))});
-    }).catch(function(e){toast(e.erro||"Não consegui registrar a OS. Tente de novo.")}).then(function(){bt.disabled=false;doc()});
-  }
-  v.addEventListener("input",function(e){if(e.target.closest(".form")||e.target.id==="oCli")upd()});
-  v.addEventListener("change",function(e){if(e.target.closest(".form"))doc()});
-  v.addEventListener("click",function(e){
-    if(e.target.closest("#oPrint")){printOS();return}
-    if(e.target.closest("#osNewTop")){$("#oCli").focus();return}
-    if(e.target.closest("#oDrvBusca")){openDriveModal("",pickFolder);return}
-    if(e.target.closest("#oLink")){var c0=cli();if(c0)openDriveModal("",function(f){linkFolder(c0,f)},c0);return}
-    var od=e.target.closest("[data-osdrive]");if(od){osSalvarDrive(od.dataset.osdrive,function(){table();upd()});return}
-    if(e.target.closest("#oNewCli")){var t=$("#oCli").value.trim();openCliModal(t&&!cli()?t:"",function(c){$("#oCli").value=c.nome;upd()});return}
-    if(e.target.closest("#oGen")){gerar();return}
-    var f=e.target.closest(".filt button");if(f){$$(".filt button",v).forEach(function(b){b.setAttribute("aria-pressed",b===f?"true":"false")});table(f.textContent)}
-  });
-  VIEWS.os.pre=function(id,ev){var c=CLIENTES.find(function(x){return x.id===id});if(c)$("#oCli").value=c.nome;else if(ev)$("#oCli").value=ev.cli;
-    if(ev){$("#oSv").value=(ev.svs||[ev.s]).join(" e ");$("#oD").value=ev.date;$("#oObs").value=ev.obs||"";toast("OS preenchida com os dados do agendamento.")}upd()};
-  bindPick($("#oCli"),function(){upd()});
-  table();upd();
-  gStatus().then(function(){if(gLigado())gPastas().then(upd,function(){});upd();table()});
-  VIEWS.os.show=function(){table();upd()};
-};
-
 /* ===== E-MAILS ===== */
 VIEWS.mail=function(v){
   var st={f:"responder",id:null,cx:"todas"};
@@ -223,15 +122,15 @@ VIEWS.cli=function(v){
     var ini=c.nome.split(" ").filter(function(w){return w.length>2}).map(function(w){return w[0]}).join("").slice(0,2);
     v.innerHTML='<div class="grid">'
     +'<div class="card c12 phead"><div class="prof"><button class="ghost" type="button" data-cback>‹ Clientes</button><span class="bigav">'+ini+'</span><div style="flex:1;min-width:0"><h3>'+c.nome+'</h3><span class="sub">'+c.razao+' · '+c.doc+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px"><span class="tag">'+c.perfil+'</span>'+(gv.length?'<span class="pill go">Garantia vigente</span>':'')+(f.n?'<span class="pill '+(f.venc?'er':'al')+'">'+(f.venc?'Inadimplente':'Fatura em aberto')+'</span>':f.lista.length?'<span class="pill ok">Pagamentos em dia</span>':'')+'</div></div>'
-     +'<div class="pacts"><button class="ghost" type="button" data-agd>'+ic("agenda",13)+' Agendar</button><button class="ghost" type="button" data-mail>'+ic("mail",13)+' E-mail</button><button class="cta" type="button" data-newos="'+c.id+'">'+ic("plus",13)+'Nova OS</button></div></div></div>'
+     +'<div class="pacts"><button class="ghost" type="button" data-agd>'+ic("agenda",13)+' Agendar</button><button class="ghost" type="button" data-mail>'+ic("mail",13)+' E-mail</button></div></div></div>'
     +'<div class="card c12" style="padding:12px"><div class="kp" style="--n:4">'
      +'<div><span class="sq">'+ic("os",14)+'</span><span class="t">Último serviço</span><b class="num" style="font-size:15px">'+(h?(SERV[h[1]]?SERV[h[1]].sh:h[1]):"—")+'</b><span class="pill ne">'+(h?dmy(h[0]):'Sem serviços')+'</span></div>'
      +'<div><span class="sq">'+ic("shield",14)+'</span><span class="t">Garantia</span><b class="num" style="font-size:15px">'+(gv.length?'até '+dmy(gv[0][1].fim):'Nenhuma vigente')+'</b><span class="pill '+(gv.length?(gv[0][1].left<=30?'al':'go'):'ne')+'">'+(gv.length?'faltam '+gv[0][1].left+' dias':'—')+'</span></div>'
      +'<div><span class="sq">'+ic("agenda",14)+'</span><span class="t">Próxima visita</span><b class="num" style="font-size:15px">'+(pv[0]?DIA3[new Date(pv[0].date+"T12:00").getDay()]+', '+dmy(pv[0].date).slice(0,5)+' · '+hh(pv[0].h):'Nada agendado')+'</b><span class="pill in">'+(pv[0]?svShort(pv[0]):'Agenda')+'</span></div>'
      +'<div><span class="sq">'+ic("fat",14)+'</span><span class="t">Em aberto</span><b class="num" style="font-size:15px">'+(f.n?brl(f.aberto):'R$ 0,00')+'</b><span class="pill '+(f.n?(f.venc?'er':'al'):'ok')+'">'+(f.n?f.n+' fatura'+(f.n>1?'s':''):'Em dia')+' · Conta Azul</span></div></div></div>'
     +'<div class="c8" style="display:flex;flex-direction:column;gap:10px">'
-     +'<div class="card"><div class="ch"><h4>Ordens de serviço</h4><div class="r"><span class="src">Sistema · Drive</span><button class="ghost" type="button" data-newos="'+c.id+'">+ Nova OS</button></div></div>'
-      +(os.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Número</th><th>Serviço</th><th>Status</th><th>Arquivo</th></tr></thead><tbody>'+os.slice(0,6).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td><td>'+osArquivo(o)+'</td></tr>'}).join("")+'</tbody></table></div>':'<p class="mut txt">Nenhuma OS emitida ainda.</p>')+'</div>'
+     +(os.length?'<div class="card"><div class="ch"><h4>Ordens de serviço</h4><div class="r"><span class="src">Sistema · Drive</span></div></div>'
+      +'<div class="scroll-x"><table class="tb"><thead><tr><th>Número</th><th>Serviço</th><th>Status</th><th>Arquivo</th></tr></thead><tbody>'+os.slice(0,6).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td><td>'+osArquivo(o)+'</td></tr>'}).join("")+'</tbody></table></div></div>':'')
      +'<div class="card"><div class="ch"><h4>Pagamentos</h4><span class="src">Conta Azul</span></div>'
       +(f.lista.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Forma</th><th class="r">Valor</th><th>Status</th></tr></thead><tbody>'+f.lista.map(function(p){return '<tr><td class="num">'+dmy(p[0])+'</td><td>'+p[1]+'</td><td>'+p[4]+'</td><td class="r num">'+brl(p[2])+'</td><td><span class="pill '+(p[3]==="Pago"?'ok':p[3]==="Vencido"?'er':'al')+'">'+p[3]+'</span></td></tr>'}).join("")+'</tbody></table></div>':'<p class="mut txt">A Conta Azul ainda não foi conectada. Os pagamentos deste cliente aparecem aqui depois da integração.</p>')+'</div>'
      +'<div class="card"><div class="ch"><h4>E-mails</h4><span class="src">Gmail · 3 caixas</span></div><ul class="ls">'
@@ -258,7 +157,6 @@ VIEWS.cli=function(v){
     if(e.target.closest("[data-newcli]")){openCliModal(digits(st.q).length===14?st.q:"",function(c){CLI_SEL=c.id;CLI_OPEN=true;prof()});return}
     if(e.target.closest("[data-clink]")){var c=CLIENTES.find(function(x){return x.id===CLI_SEL});openDriveModal("",function(fd){var dono=CLIENTES.find(function(x){return x.pastaId===fd.id&&x!==c});if(dono){toast("Essa pasta já é de "+dono.nome+".");return}c.pastaId=fd.id;c.pasta=pastaNome(fd);dbSave();prof();toast("Pasta ligada a "+c.nome+".")},c);return}
     var od=e.target.closest("[data-osdrive]");if(od){osSalvarDrive(od.dataset.osdrive,prof);return}
-    var n=e.target.closest("[data-newos]");if(n){location.hash="#os";setTimeout(function(){VIEWS.os.pre&&VIEWS.os.pre(+n.dataset.newos)},30);return}
     if(e.target.closest("[data-agd]")){location.hash="#agenda";return}
     var em=e.target.closest("[data-em]");if(em||e.target.closest("[data-mail]")){location.hash="#mail";return}
   });
@@ -278,7 +176,7 @@ VIEWS.rec=function(v){
   +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Total a receber</span><button class="plus" type="button" data-rnew aria-label="Novo lançamento">+</button></div><b class="num" id="rTot"></b><p class="hs" id="rTotS"></p><div class="ha"><button class="w" type="button" data-rnew style="white-space:nowrap">+ Novo</button></div></div>'
   +'<div class="card c9"><div class="ch"><h4>Clientes avulsos</h4><span class="sub">Serviços sem contrato, cobrados um a um</span></div><div class="kp" style="--n:4" id="rKp"></div></div>'
   +'<div class="split c12"><div class="card"><div class="ch"><h4>Cobranças</h4><button class="cta" type="button" data-rnew>'+ic("plus",13)+'Novo lançamento</button></div>'
-   +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ, nota fiscal ou OS" aria-label="Buscar cobranças"></div></div>'
+   +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ ou nota fiscal" aria-label="Buscar cobranças"></div></div>'
    +'<div class="filt" role="group" aria-label="Situação" id="rFil"></div>'
    +'<div class="scroll-x"><table class="tb" id="rTb"><thead><tr><th>Cliente</th><th>Nota fiscal</th><th>Cobrança enviada</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody></tbody></table></div></div>'
    +'<div class="card" id="rDet"></div></div></div>'
@@ -290,7 +188,7 @@ VIEWS.rec=function(v){
    +'<div class="fld full"><label for="rEm">E-mail para cobrança</label><input id="rEm" type="email"></div></div>'
    +'<div class="sub" style="margin:4px 0 -4px">Cobrança</div><div class="form">'
    +'<div class="fld full"><label for="rServ">Serviço realizado</label><input id="rServ" placeholder="Ex.: desobstrução do vaso do banheiro do 3º andar"></div>'
-   +'<div class="fld"><label for="rOs">OS vinculada</label><input id="rOs" placeholder="OS-2026-0000"></div><div class="fld"><label for="rVal">Valor (R$)</label><input id="rVal" type="number" min="0" step="10" placeholder="0,00"></div>'
+   +'<div class="fld full"><label for="rVal">Valor (R$)</label><input id="rVal" type="number" min="0" step="10" placeholder="0,00"></div>'
    +'<div class="fld"><label for="rNf">Nº da nota fiscal</label><input id="rNf" inputmode="numeric" placeholder="Deixe vazio se ainda não emitiu"></div><div class="fld"><label for="rNfD">Emissão da nota</label><input id="rNfD" type="date"></div>'
    +'<div class="fld"><label for="rVenc">Vencimento</label><input id="rVenc" type="date"></div><div class="fld"><label for="rForma">Forma de pagamento</label><select id="rForma"><option>Boleto</option><option>Pix</option><option>Transferência</option><option>Dinheiro</option></select></div>'
    +'<div class="fld"><label for="rCob">Cobrança enviada em</label><input id="rCob" type="date"></div><div class="fld"><label for="rCanal">Enviada por</label><select id="rCanal"><option value="">Ainda não enviada</option><option>E-mail</option><option>WhatsApp</option><option>Correio</option><option>Em mãos</option></select></div>'
@@ -309,7 +207,7 @@ VIEWS.rec=function(v){
   function table(){
     $("#rFil").innerHTML=FIL.map(function(f){return '<button type="button" aria-pressed="'+(st.f===f)+'">'+f+'</button>'}).join("");
     var q=norm(st.q.trim()),qd=digits(q);
-    var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.os+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
+    var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
     $("#rTb tbody").innerHTML=L.map(function(r){var s=recSt(r),late=s[1]==="Vencido"?diffDays(TD,r.venc):0;
       return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td>'+(r.cob?'<b>'+dmy(r.cob)+'</b><small>'+r.canal+'</small>':'<span class="pill al">Não enviada</span>')+'</td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma)+'</small></td><td class="r num">'+brl(r.valor)+'</td><td><span class="pill '+s[0]+'">'+s[1]+'</span></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
   }
@@ -323,7 +221,7 @@ VIEWS.rec=function(v){
     tl.sort(function(a,b){return (a[0]||"0")<(b[0]||"0")?-1:1});
     var ini=r.nome.split(" ").filter(function(w){return w.length>2}).map(function(w){return w[0]}).join("").slice(0,2);
     $("#rDet").innerHTML='<div class="prof"><span class="bigav">'+ini+'</span><div style="flex:1;min-width:0"><h3>'+r.nome+'</h3><span class="sub">'+r.doc+'</span></div><span class="pill '+s[0]+'">'+s[1]+'</span></div>'
-    +'<div class="rval"><span class="sub">Valor</span><b class="num">'+brl(r.valor)+'</b><span class="sub">'+r.serv+(r.os?' · '+r.os:'')+'</span></div>'
+    +'<div class="rval"><span class="sub">Valor</span><b class="num">'+brl(r.valor)+'</b><span class="sub">'+r.serv+'</span></div>'
     +'<div class="kv2"><div><small>Nota fiscal</small><span>'+(r.nf?'Nº '+r.nf+' · '+dmy(r.nfData):'A emitir')+'</span></div><div><small>Cobrança enviada</small><span>'+(r.cob?dmy(r.cob)+' · '+r.canal:'Não enviada')+'</span></div><div><small>Vencimento</small><span>'+dmy(r.venc)+' · '+r.forma+'</span></div><div><small>Recebido em</small><span>'+(r.pago?dmy(r.pago):'—')+'</span></div><div><small>Contato</small><span>'+r.contato+' · '+r.tel+'</span></div><div><small>E-mail</small><span>'+r.email+'</span></div></div>'
     +(!r.pago&&!r.nf?'<div class="nfrow"><div class="fld"><label for="dNf">Nº da nota fiscal</label><input id="dNf" inputmode="numeric" placeholder="Ex.: 2390"></div><button class="cta rq" type="button" data-dnf>Registrar nota</button></div>':'')
     +'<div class="ch"><h4>Histórico da cobrança</h4></div><ul class="tl">'+tl.map(function(t){return '<li><span class="pt" style="border-color:'+({ok:"var(--ok)",in:"var(--hidra)",al:"var(--alerta)",er:"var(--erro)",ne:"#CAC9C5"}[t[2]])+'"></span><span><b>'+t[1]+'</b></span><span class="sub num">'+(t[0]?dmy(t[0]):'')+'</span></li>'}).join("")+'</ul>'
@@ -353,7 +251,7 @@ VIEWS.rec=function(v){
       var nome=$("#rNome").value.trim(),val=+$("#rVal").value;
       if(!nome){toast("Informe o cliente.");$("#rNome").focus();return}if(!val){toast("Informe o valor.");$("#rVal").focus();return}if(!$("#rVenc").value){toast("Informe o vencimento.");return}
       var cob=$("#rCob").value,canal=$("#rCanal").value;if(cob&&!canal)canal="E-mail";if(canal&&!cob)cob=TD;
-      var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",os:$("#rOs").value.trim(),valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?($("#rNfD").value||TD):"",cob:cob,canal:canal,forma:$("#rForma").value,venc:$("#rVenc").value,pago:"",hist:[],obs:$("#rObs").value.trim()};
+      var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?($("#rNfD").value||TD):"",cob:cob,canal:canal,forma:$("#rForma").value,venc:$("#rVenc").value,pago:"",hist:[],obs:$("#rObs").value.trim()};
       RECEBER.push(n);REC_SEL=n.id;st.f="Todos";$("#rModal").hidden=true;all();toast("Lançamento de "+brl(val)+" para "+nome+" salvo.");return}
     var r=RECEBER.find(function(x){return x.id===REC_SEL});
     if(e.target.closest("[data-dnf]")){var nf=$("#dNf").value.trim();if(!nf){toast("Informe o número da nota.");$("#dNf").focus();return}r.nf=nf;r.nfData=TD;all();toast("NF "+nf+" registrada.");return}
@@ -362,7 +260,7 @@ VIEWS.rec=function(v){
     if(e.target.closest("[data-dpago]")){r.pago=TD;all();toast("Pagamento de "+brl(r.valor)+" registrado.");return}
   });
   all();
-  VIEWS.rec.show=all;
+  VIEWS.rec.show=function(){var r=RECEBER.find(function(x){return x.id===REC_SEL});if(r&&!pass(r))st.f="Todos";all()};
 };
 
 /* ===== FUNCIONÁRIOS ===== */
@@ -452,15 +350,6 @@ VIEWS.cfg=function(v){
 (function(){var m=location.search.match(/[?&]google=(\w+)/);if(!m)return;try{history.replaceState(null,"",location.pathname+location.hash)}catch(e){}
   var t={ok:"Google Drive conectado. As OS já vão direto para a pasta de cada cliente.",cancelado:"Conexão com o Google cancelada.",permissoes:"Marque todas as permissões pedidas pelo Google e tente de novo.",erro:"Não consegui conectar o Google Drive. Tente de novo."}[m[1]];
   if(t)setTimeout(function(){toast(t)},800)})();
-
-/* ===== CENTRAL DE AJUDA ===== */
-VIEWS.help=function(v){
-  v.innerHTML='<div class="grid"><div class="card c8"><div class="ch"><h4>Dúvidas frequentes</h4></div><div class="search" style="flex:none">'+ic("search",14)+'<input placeholder="Buscar ajuda" aria-label="Buscar ajuda"></div>'
-  +[["Como trago os clientes do Conta Azul?","No Conta Azul, abra Cadastros › Clientes e use Exportar. Aqui, em Clientes, clique em Importar do Conta Azul e escolha a planilha. Clientes com o mesmo nome não são duplicados, então dá para importar de novo quando quiser."],["Como gero uma ordem de serviço?","Em Ordens de serviço, escolha o cliente, descreva o serviço e clique em Gerar OS e salvar no Drive. O termo de execução é criado como documento Google, no modelo da Monte Fuji, dentro da pasta do cliente. A pasta é encontrada pelo nome; se não for, escolha uma vez e o sistema guarda."],["Como cadastro uma visita na agenda?","Em Agenda, clique em + Novo agendamento ou em Agendar numa das melhores datas sugeridas. Os campos definitivos ainda serão definidos."],["O assistente lê meus e-mails?","No sistema final, sim: ele lê a caixa da empresa para sugerir respostas. Nada é enviado sem você clicar em enviar."],["Onde vejo as garantias de um cliente?","Em Clientes, selecione o cliente. As garantias aparecem com a barra de tempo restante e a data de término."],["Os dados financeiros são atualizados sozinhos?","Sim, quando a Conta Azul estiver conectada. A sincronização prevista é a cada hora."]].map(function(f,i){return '<details class="faq"'+(i?'':' open')+'><summary>'+f[0]+'</summary><p>'+f[1]+'</p></details>'}).join("")+'</div>'
-  +'<div class="c4" style="display:flex;flex-direction:column;gap:10px"><div class="card hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Falar com o suporte</span></div><b style="font-size:20px">atendimento@mfuji.com.br</b><p class="hs">(11) 3609-5222 · segunda a sábado</p></div>'
-  +'<div class="card"><div class="ch"><h4>Atalhos</h4></div><ul class="ls"><li><span class="grow"><b style="font-weight:500">Abrir o assistente</b></span><span class="tag">Ctrl + J</span></li><li><span class="grow"><b style="font-weight:500">Fechar janelas</b></span><span class="tag">Esc</span></li><li><span class="grow"><b style="font-weight:500">Abrir um dia na agenda</b></span><span class="tag">Duplo clique</span></li></ul></div>'
-  +'<div class="card"><div class="ch"><h4>Versão</h4><span class="pill ok">Versão 2</span></div><p class="txt">v2.0 · em uso desde '+dmy(TD)+'. Dados no banco compartilhado da Cloudflare, com login individual e atualização automática entre a equipe.</p></div></div></div>';
-};
 
 /* ===== início ===== */
 document.addEventListener("click",function(e){

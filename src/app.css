@@ -623,6 +623,17 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .vencbar small{display:block;font-size:10.5px;opacity:.9}
 .yr .g i.vc{background:#D64545!important;color:#fff;font-weight:700}
 .lg-vc{display:inline-flex;align-items:center;gap:5px;color:#B42323;font-weight:600}
+/* A receber: vencimentos em verde na agenda */
+.recb,.rech{display:flex;align-items:center;gap:4px;width:100%;font:inherit;font-size:10.5px;font-weight:700;color:#fff;background:var(--ok);border:0;border-radius:5px;padding:3px 6px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.recb.pg,.rech.pg{background:var(--ok-50);color:var(--ok)}
+.rech{margin-top:3px;font-size:9.5px;justify-content:center}
+.recb svg,.rech svg{flex:none}
+@media (max-width:760px){.recb{font-size:0;padding:0;height:6px}.recb svg{display:none}}
+.recbar{display:flex;align-items:center;gap:10px;background:var(--ok-50);border:1px solid #BFDCCB;color:var(--ok);border-radius:11px;padding:9px 11px;cursor:pointer}
+.recbar b{display:block;font-size:12px;font-weight:700}
+.recbar small{display:block;font-size:10.5px;opacity:.9}
+.yr .g i.rc{background:var(--ok)!important;color:#fff;font-weight:700}
+.lg-rc{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-weight:600}
 .tk.vk{border:1.5px solid #D64545;background:#FFF7F7}
 .tk.vk .tt b{color:#B42323}
 .vmsg{background:#fff;border:1px dashed #F2B8B8;border-radius:9px;padding:8px;display:grid;gap:6px}

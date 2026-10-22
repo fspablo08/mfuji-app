@@ -633,6 +633,17 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .vencbar small{display:block;font-size:10.5px;opacity:.9}
 .yr .g i.vc{background:#D64545!important;color:#fff;font-weight:700}
 .lg-vc{display:inline-flex;align-items:center;gap:5px;color:#B42323;font-weight:600}
+/* A receber: vencimentos em verde na agenda */
+.recb,.rech{display:flex;align-items:center;gap:4px;width:100%;font:inherit;font-size:10.5px;font-weight:700;color:#fff;background:var(--ok);border:0;border-radius:5px;padding:3px 6px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.recb.pg,.rech.pg{background:var(--ok-50);color:var(--ok)}
+.rech{margin-top:3px;font-size:9.5px;justify-content:center}
+.recb svg,.rech svg{flex:none}
+@media (max-width:760px){.recb{font-size:0;padding:0;height:6px}.recb svg{display:none}}
+.recbar{display:flex;align-items:center;gap:10px;background:var(--ok-50);border:1px solid #BFDCCB;color:var(--ok);border-radius:11px;padding:9px 11px;cursor:pointer}
+.recbar b{display:block;font-size:12px;font-weight:700}
+.recbar small{display:block;font-size:10.5px;opacity:.9}
+.yr .g i.rc{background:var(--ok)!important;color:#fff;font-weight:700}
+.lg-rc{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-weight:600}
 .tk.vk{border:1.5px solid #D64545;background:#FFF7F7}
 .tk.vk .tt b{color:#B42323}
 .vmsg{background:#fff;border:1px dashed #F2B8B8;border-radius:9px;padding:8px;display:grid;gap:6px}
@@ -695,7 +706,7 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
       <img class="tlogo" id="tlogo" alt="Monte Fuji">
       <div class="ttl" id="ttl"></div>
       <label class="search"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg><input id="gSearch" placeholder="Buscar qualquer coisa" aria-label="Busca geral"><kbd>⌘</kbd><kbd>F</kbd></label>
-      <button class="ic" type="button" data-go="cfg" aria-label="Configurações"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></button>
+      <button class="ic" type="button" data-go="cfg" aria-label="Configurações"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M12.86 6.81L14.53 7.01L14.53 8.99L12.86 9.19L12.27 10.59L13.31 11.92L11.92 13.31L10.59 12.27L9.19 12.86L8.99 14.53L7.01 14.53L6.81 12.86L5.41 12.27L4.08 13.31L2.69 11.92L3.73 10.59L3.14 9.19L1.47 8.99L1.47 7.01L3.14 6.81L3.73 5.41L2.69 4.08L4.08 2.69L5.41 3.73L6.81 3.14L7.01 1.47L8.99 1.47L9.19 3.14L10.59 3.73L11.92 2.69L13.31 4.08L12.27 5.41z"/></svg></button>
       <button class="ic" type="button" id="bell" aria-label="Avisos"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 11V7a4 4 0 018 0v4l1.5 1.5h-11zM6.5 14h3"/></svg><span class="dot" id="bellDot" hidden></span></button>
       <button class="me" id="me" type="button" aria-label="Minha conta"></button>
     </header>
@@ -703,13 +714,11 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
     <section class="view" id="v-agenda" aria-label="Agenda"></section>
     <section class="view" id="v-assist" aria-label="Assistente"></section>
     <section class="view" id="v-notas" aria-label="Anotações"></section>
-    <section class="view" id="v-os" aria-label="Ordens de serviço"></section>
     <section class="view" id="v-cli" aria-label="Clientes"></section>
     <section class="view" id="v-mail" aria-label="E-mails"></section>
     <section class="view" id="v-rec" aria-label="A receber"></section>
     <section class="view" id="v-func" aria-label="Funcionários"></section>
     <section class="view" id="v-cfg" aria-label="Configurações"></section>
-    <section class="view" id="v-help" aria-label="Central de ajuda"></section>
     <p class="sub" id="syncSt" style="text-align:center;padding-top:6px">Monte Fuji · banco compartilhado</p>
   </div>
 </div>
@@ -874,6 +883,9 @@ function vencList(){var g={};EVENTS.forEach(function(e){if(!e.gar)return;var k=e
   return Object.keys(g).map(function(k){var x=g[k];x.venc=addMonths(x.last,x.gar);
     x.renov=EVENTS.some(function(e){return e.cli===x.cli&&(e.grp||e.id)!==k&&e.date>x.last});return x}).filter(function(x){return !x.renov})}
 function vencOn(k){return vencList().filter(function(x){return x.venc===k})}
+/* Vencimentos do A receber, em verde na agenda */
+function recOn(k){return RECEBER.filter(function(r){return r.venc===k})}
+function recTit(r){return (r.pago?"Recebido: ":"A receber: ")+r.nome+" · "+brl(r.valor)}
 function vencMsg(x){var c=CLIENTES.find(function(y){return y.nome===x.cli}),nm=c&&c.contato?firstName(c.contato):x.cli;
   return "Olá, "+nm+"! Tudo bem? Aqui é da Monte Fuji. O serviço de "+x.svs.join(", ").toLowerCase()+" realizado em "+dmy(x.last)+" está com a garantia vencendo em "+dmy(x.venc)+". Para manter o local protegido, precisamos agendar uma nova aplicação. Qual a melhor data para vocês?"}
 /* Uma semana antes do vencimento cria a anotação de contato (uma vez só, mesmo se apagada) */
@@ -906,7 +918,7 @@ var I={
  fat:'<path d="M4 2h6l3 3v9H4z"/><path d="M6 8h5M6 10.5h5"/>',
  rel:'<circle cx="8" cy="8" r="6"/><path d="M8 2v6h6"/>',
  func:'<circle cx="8" cy="5" r="2.6"/><path d="M3 14c.6-3.2 2.6-4.8 5-4.8s4.4 1.6 5 4.8"/>',
- cfg:'<circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/>',
+ cfg:'<circle cx="8" cy="8" r="2.2"/><path d="M12.86 6.81L14.53 7.01L14.53 8.99L12.86 9.19L12.27 10.59L13.31 11.92L11.92 13.31L10.59 12.27L9.19 12.86L8.99 14.53L7.01 14.53L6.81 12.86L5.41 12.27L4.08 13.31L2.69 11.92L3.73 10.59L3.14 9.19L1.47 8.99L1.47 7.01L3.14 6.81L3.73 5.41L2.69 4.08L4.08 2.69L5.41 3.73L6.81 3.14L7.01 1.47L8.99 1.47L9.19 3.14L10.59 3.73L11.92 2.69L13.31 4.08L12.27 5.41z"/>',
  help:'<circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.8.5-1.3.9-1.3 1.8M8 11.4v.2"/>',
  up:'<path d="M8 13V3M4 7l4-4 4 4"/>',down:'<path d="M8 3v10M4 9l4 4 4-4"/>',wallet:'<rect x="2.5" y="4" width="11" height="9" rx="2"/><path d="M2.5 7h11"/>',
  drive:'<path d="M5.5 2.5h5l4 7-2.5 4h-8l-2.5-4z"/><path d="M5.5 2.5l4 7M1.5 9.5h13M10.5 2.5l-4 7"/>',
@@ -920,10 +932,10 @@ function ic(n,s){return '<svg width="'+(s||15)+'" height="'+(s||15)+'" viewBox="
 
 var NAV=[
  ["Principal",[["dash","Dashboard","Início","“Proteção que evolui. Veja a operação de hoje num só lugar.”"],["agenda","Agenda","Agenda","Visitas e serviços do mês, por dia, semana, mês ou ano."],["assist","Assistente","Assistente","Pergunte, peça rascunhos de resposta e sugestões de datas."],["notas","Anotações","Anotações","O que fazer hoje, o que está pendente e o que ficou para trás."]]],
- ["Operação",[["os","Ordens de serviço","Ordens de serviço","Preencha o formulário e a OS vai direto para a pasta do cliente no Google Drive."],["cli","Clientes","Clientes","Cadastro, histórico de serviços e garantias de cada cliente."],["mail","E-mails","E-mails","Caixa do Gmail: o que responder, o que está pendente e o que foi enviado."]]],
+ ["Operação",[["cli","Clientes","Clientes","Cadastro, histórico de serviços e garantias de cada cliente."],["mail","E-mails","E-mails","Caixa do Gmail: o que responder, o que está pendente e o que foi enviado."]]],
  ["Financeiro",[["rec","A receber","A receber","Cobranças de clientes avulsos: nota fiscal, envio da cobrança e recebimento."]]],
  ["RH",[["func","Funcionários","Funcionários","Dados, documentos, uniformes e EPIs de cada colaborador."]]],
- ["Preferências",[["cfg","Configurações","Configurações","Empresa, integrações, usuários e notificações."],["help","Central de ajuda","Central de ajuda","Dúvidas frequentes, atalhos e contato do suporte."]]]
+ ["Preferências",[["cfg","Configurações","Configurações","Empresa, integrações, usuários e notificações."]]]
 ];
 var BADGE={},BADGER={notas:1,rec:1};
 function calcBadges(){function n(x){return x?String(x):""}
@@ -1264,14 +1276,14 @@ VIEWS.dash=function(v){
   VIEWS.dash.show=function(){
   var hoje=evOn(TD),late=TAREFAS.filter(isLate),ab=RECEBER.filter(function(r){return !r.pago}),tot=ab.reduce(function(s,r){return s+r.valor},0),venc=ab.filter(function(r){return recSt(r)[1]==="Vencido"});
   var ini=addDays(TODAY,-TODAY.getDay()),sem=0;for(var i=0;i<7;i++)sem+=evOn(ymd(addDays(ini,i))).length;
-  var mes=TD.slice(0,7),osMes=OSL.filter(function(o){return String(o[1]).slice(0,7)===mes}).length,bd=FUNC.filter(function(f){return f.nasc&&f.nasc.slice(5,7)===mes.slice(5)});
-  var passos=[[CLIENTES.length>0,"Cadastrar os clientes","cli"],[FUNC.length>0,"Cadastrar a equipe","func"],[EVENTS.length>0,"Lançar os serviços na agenda","agenda"],[OSL.length>0,"Gerar a primeira ordem de serviço","os"],[RECEBER.length>0,"Lançar as cobranças avulsas","rec"]],feitos=passos.filter(function(p){return p[0]}).length;
+  var mes=TD.slice(0,7),w7=ymd(addDays(TODAY,7)),sete=ab.filter(function(r){return r.venc>=TD&&r.venc<=w7}),prox=EVENTS.filter(function(e){return e.date>TD}).sort(function(a,b){return a.date+String(a.h).padStart(2,"0")<b.date+String(b.h).padStart(2,"0")?-1:1}).slice(0,5),bd=FUNC.filter(function(f){return f.nasc&&f.nasc.slice(5,7)===mes.slice(5)});
+  var passos=[[CLIENTES.length>0,"Cadastrar os clientes","cli"],[FUNC.length>0,"Cadastrar a equipe","func"],[EVENTS.length>0,"Lançar os serviços na agenda","agenda"],[RECEBER.length>0,"Lançar as cobranças avulsas","rec"]],feitos=passos.filter(function(p){return p[0]}).length;
   function vazio(t){return '<li class="mut">'+t+'</li>'}
   v.innerHTML='<div class="grid">'
   +'<div class="card hero c3"><div class="ring" aria-hidden="true"></div><div class="hh"><span>A receber em aberto</span><button class="plus" type="button" aria-label="Novo lançamento" data-go="rec">+</button></div><b class="num">'+brl(tot)+'</b><p class="hs">'+(ab.length?ab.length+' cobrança'+(ab.length>1?'s':'')+(venc.length?' · '+venc.length+' vencida'+(venc.length>1?'s':''):''):'Nenhuma cobrança em aberto')+'</p><div class="ha"><button class="w" type="button" data-go="rec">Ver cobranças</button></div></div>'
   +'<div class="card c9"><div class="ch"><h4>Resumo</h4><span class="sub">'+DIA_EXT[TODAY.getDay()].replace(/^./,function(m){return m.toUpperCase()})+', '+dmy(TD)+'</span></div><div class="kp" style="--n:4">'
    +'<div><span class="sq">'+ic("agenda",14)+'</span><span class="t">Visitas hoje</span><b class="num">'+hoje.length+'</b><span class="pill in">'+sem+' na semana</span></div>'
-   +'<div><span class="sq">'+ic("os",14)+'</span><span class="t">OS emitidas no mês</span><b class="num">'+osMes+'</b><span class="pill ne">'+OSL.length+' no total</span></div>'
+   +'<div><span class="sq">'+ic("rec",14)+'</span><span class="t">A receber em 7 dias</span><b class="num">'+brl(sete.reduce(function(s,r){return s+r.valor},0))+'</b><span class="pill ok">'+sete.length+' cobrança'+(sete.length===1?'':'s')+'</span></div>'
    +'<div><span class="sq">'+ic("cli",14)+'</span><span class="t">Clientes cadastrados</span><b class="num">'+CLIENTES.length+'</b><span class="pill ne">'+FUNC.length+' na equipe</span></div>'
    +'<div><span class="sq">'+ic("clock",14)+'</span><span class="t">Anotações atrasadas</span><b class="num">'+late.length+'</b><span class="pill '+(late.length?'er':'ok')+'">'+(late.length?'Ver quadro':'Em dia')+'</span></div></div></div>'
   +'<div class="card c4"><div class="ch"><h4>Agenda de hoje</h4><a class="ghost" href="#agenda">Abrir</a></div><span class="sub">'+hoje.length+' visita'+(hoje.length===1?'':'s')+(bd.filter(function(f){return f.nasc.slice(5)===TD.slice(5)}).length?' · aniversário de '+bd.filter(function(f){return f.nasc.slice(5)===TD.slice(5)}).map(function(f){return firstName(f.nome)}).join(", "):'')+'</span><ul class="ls">'
@@ -1280,8 +1292,8 @@ VIEWS.dash=function(v){
    +'<ul class="ls">'+(TAREFAS.filter(function(t){return !t.done}).length?TAREFAS.filter(function(t){return !t.done}).slice(0,5).map(function(t){var l=isLate(t);return '<li>'+(l?'<span class="sq" style="width:22px;height:22px;border-radius:6px;background:var(--erro-50);border-color:#F1C9C6;color:var(--erro)">'+ic("clock",12)+'</span>':'<span style="width:18px;height:18px;margin:2px;border-radius:5px;border:1.5px solid #CAC9C5;flex:none"></span>')+'<span class="grow"><b>'+t.t+'</b><small>'+(!t.due?'Sem data':l?'Venceu em '+dmy(t.due):'Prazo '+dmy(t.due))+'</small></span></li>'}).join(""):vazio('Nenhuma anotação pendente.'))+'</ul></div>'
   +'<div class="card c4"><div class="ch"><h4>Cobranças a vencer</h4><a class="ghost" href="#rec">A receber</a></div><ul class="ls">'
    +(ab.length?ab.slice().sort(function(a,b){return a.venc<b.venc?-1:1}).slice(0,5).map(function(r){var d=diffDays(r.venc,TD);return '<li><span class="grow"><b>'+r.nome+'</b><small>'+(d<0?'Vencida há '+(-d)+' dia'+(d===-1?'':'s'):d===0?'Vence hoje':'Vence em '+dmy(r.venc))+'</small></span><b class="num" style="flex:none;'+(d<0?'color:var(--erro)':'')+'">'+brl(r.valor)+'</b></li>'}).join(""):vazio('Nenhuma cobrança em aberto.'))+'</ul></div>'
-  +'<div class="card c8"><div class="ch"><h4>Ordens de serviço recentes</h4><div class="r"><a class="ghost" href="#os">+ Nova OS</a></div></div>'
-   +(OSL.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Número</th><th>Cliente</th><th>Serviço</th><th>Status</th></tr></thead><tbody>'+OSL.slice(0,5).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[2]+'</td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td></tr>'}).join("")+'</tbody></table></div>':'<p class="mut txt">Nenhuma OS emitida ainda.</p>')+'</div>'
+  +'<div class="card c8"><div class="ch"><h4>Próximas visitas</h4><a class="ghost" href="#agenda">Agenda</a></div><ul class="ls">'
+   +(prox.length?prox.map(function(e){return '<li><span class="tm">'+dmy(e.date).slice(0,5)+'</span><span class="bar-t" style="background:'+SERV[e.s].c+'"></span><span class="grow"><b>'+e.cli+'</b><small>'+hh(e.h)+' · '+svShort(e)+'</small></span></li>'}).join(""):vazio('Nenhuma visita agendada nos próximos dias.'))+'</ul></div>'
   +'<div class="card c4"><div class="ch"><h4>Primeiros passos</h4><span class="pill '+(feitos===passos.length?'ok':'in')+'">'+feitos+' de '+passos.length+'</span></div><ul class="ls">'
    +passos.map(function(p){return '<li class="lk" data-go="'+p[2]+'"><span class="sq" style="'+(p[0]?'background:var(--ok);border-color:var(--ok);color:#fff':'')+'">'+ic(p[0]?"chk":p[2],13)+'</span><span class="grow"><b style="'+(p[0]?'text-decoration:line-through;color:var(--t3)':'')+'">'+p[1]+'</b></span><span class="chev">›</span></li>'}).join("")+'</ul></div>'
   +'</div>';
@@ -1300,7 +1312,7 @@ VIEWS.agenda=function(v){
   var HRS=[7,8,9,10,11,12,13,14,15,16,17];
   function dateRow(d,h){return '<div class="drow"><input type="date" aria-label="Data" value="'+(d||"")+'"><select aria-label="Horário">'+HRS.map(function(x){return '<option value="'+x+'"'+(x===(h||8)?' selected':'')+'>'+hh(x)+'</option>'}).join("")+'</select><button class="dots" type="button" data-rmd aria-label="Remover data">×</button></div>'}
   v.innerHTML='<div class="grid"><div class="card c9" id="calCard"><div class="cal-h"><div class="nav2"><button type="button" id="cPrev" aria-label="Anterior">‹</button><button type="button" id="cNext" aria-label="Próximo">›</button></div><h4 id="cTitle"></h4><button class="ghost" type="button" id="cToday">Hoje</button><span style="flex:1"></span><button class="ghost wpb" type="button" id="cWpp">'+ic("clock",13)+' Horários de amanhã</button><button class="cta" type="button" id="cNew">'+ic("plus",13)+'Novo agendamento</button></div>'
-   +'<div class="cal-2"><div class="seg" role="group" aria-label="Visualização"><button type="button" data-cv="dia">Dia</button><button type="button" data-cv="semana">Semana</button><button type="button" data-cv="mes">Mês</button><button type="button" data-cv="ano">Ano</button></div><div class="leg2">'+SFAM.map(function(f){return '<span><i style="background:'+f[1]+'"></i>'+f[0]+'</span>'}).join("")+'<span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span><i style="background:repeating-linear-gradient(135deg,#FFF 0 3px,#DDD 3px 6px);border:1px solid #DDD"></i>Domingo · sem atendimento</span></div></div><div id="cBody"></div></div>'
+   +'<div class="cal-2"><div class="seg" role="group" aria-label="Visualização"><button type="button" data-cv="dia">Dia</button><button type="button" data-cv="semana">Semana</button><button type="button" data-cv="mes">Mês</button><button type="button" data-cv="ano">Ano</button></div><div class="leg2">'+SFAM.map(function(f){return '<span><i style="background:'+f[1]+'"></i>'+f[0]+'</span>'}).join("")+'<span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span class="lg-rc">'+ic("rec",11)+'A receber</span><span><i style="background:repeating-linear-gradient(135deg,#FFF 0 3px,#DDD 3px 6px);border:1px solid #DDD"></i>Domingo · sem atendimento</span></div></div><div id="cBody"></div></div>'
    +'<div class="c3" style="display:flex;flex-direction:column;gap:10px"><div class="card" id="sdCard"></div><div class="card bdcard" id="bdCard" hidden></div><div class="card"><div class="ch"><h4>Melhores datas</h4><span class="pill in">Assistente</span></div><p class="txt">Dias úteis com menos visitas nos próximos dias:</p><ul class="ls" id="best"></ul></div><div class="card"><div class="ch"><h4>Carga do mês</h4></div><div class="kp" style="--n:2"><div><span class="t">Visitas</span><b class="num" id="mCount"></b></div><div><span class="t">Dia mais cheio</span><b class="num" id="mTop"></b></div></div></div></div></div>'
    +'<div class="modal" id="wpModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="wpT"><div class="ch" style="margin:0"><h3 id="wpT">Horários de amanhã</h3><span class="pill ok">Para o grupo do WhatsApp</span></div>'
    +'<div class="wprow"><div class="fld"><label for="wpD">Dia</label><input id="wpD" type="date"></div><div class="fld"><label for="wpS">Saudação</label><select id="wpS"><option>Bom dia</option><option>Boa tarde</option><option>Boa noite</option></select></div></div>'
@@ -1323,12 +1335,12 @@ VIEWS.agenda=function(v){
       var first=new Date(d.getFullYear(),d.getMonth(),1),start=addDays(first,-first.getDay()),h='<div class="mgrid">'+DIA3.map(function(x){return '<div class="wd">'+x+'</div>'}).join("");
       for(var i=0;i<42;i++){var c=addDays(start,i),evs=evOn(key(c)),out=c.getMonth()!==d.getMonth(),bd=bdaysOn(key(c)),mx=bd.length?2:3;
         h+='<div class="d'+(bd.length&&!out?' bday':'')+(!out&&vencOn(key(c)).length?' venc':'')+(out?' out':'')+(key(c)===TD?' today':'')+(c.getDay()===0?' sun':'')+(key(c)===st.sel?' selday':'')+'" data-day="'+key(c)+'"><span class="n"><span>'+c.getDate()+'</span>'+(evs.length?'<small class="mut" style="font-weight:400">'+evs.length+'</small>':'')+'</span>'+(bd.length&&!out?'<span class="bdc" title="Aniversário: '+bd.map(function(f){return f.nome}).join(", ")+'">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')
-         +(out?'':vencOn(key(c)).map(function(x){return '<button type="button" class="vencb" data-ev="'+x.ev+'" title="Garantia vence hoje: '+x.cli+'">'+ic("bell",10)+' Vence: '+x.cli+'</button>'}).join(""))+evs.slice(0,mx).map(function(e){return '<button type="button" class="ev'+(e.id===st.ev?' on':'')+'" data-ev="'+e.id+'" style="--c:'+SERV[e.s].c+'">'+String(e.h).padStart(2,"0")+'h '+e.cli+'</button>'}).join("")+(evs.length>mx?'<span class="more">+'+(evs.length-mx)+' mais</span>':'')+'</div>'}
+         +(out?'':vencOn(key(c)).map(function(x){return '<button type="button" class="vencb" data-ev="'+x.ev+'" title="Garantia vence hoje: '+x.cli+'">'+ic("bell",10)+' Vence: '+x.cli+'</button>'}).join(""))+(out?'':recOn(key(c)).map(function(r){return '<button type="button" class="recb'+(r.pago?' pg':'')+'" data-rec="'+r.id+'" title="'+esc(recTit(r))+'">'+ic("rec",10)+' '+esc(r.nome)+'</button>'}).join(""))+evs.slice(0,mx).map(function(e){return '<button type="button" class="ev'+(e.id===st.ev?' on':'')+'" data-ev="'+e.id+'" style="--c:'+SERV[e.s].c+'">'+String(e.h).padStart(2,"0")+'h '+e.cli+'</button>'}).join("")+(evs.length>mx?'<span class="more">+'+(evs.length-mx)+' mais</span>':'')+'</div>'}
       b.innerHTML=h+'</div>';
     }else if(st.view==="semana"||st.view==="dia"){
       var days=[];if(st.view==="dia")days=[d];else{var s=addDays(d,-d.getDay());for(var j=0;j<7;j++)days.push(addDays(s,j))}
       $("#cTitle").textContent=st.view==="dia"?DIA3[d.getDay()]+", "+d.getDate()+" de "+MES[d.getMonth()].toLowerCase():days[0].getDate()+" a "+days[6].getDate()+" de "+MES[days[6].getMonth()].toLowerCase();
-      var hrs=[7,8,9,10,11,12,13,14,15,16,17,18],w='<div class="scroll-x"><div class="wk" style="--cols:'+days.length+';min-width:'+(days.length>1?640:0)+'px"><div class="hd" style="border-left:0"></div>'+days.map(function(x){var bd=bdaysOn(key(x));return '<div class="hd'+(key(x)===TD?' today':'')+(bd.length?' bday':'')+'" data-day="'+key(x)+'">'+DIA3[x.getDay()]+'<b>'+x.getDate()+'</b>'+(bd.length?'<span class="bdh">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')+vencOn(key(x)).map(function(vx){return '<button type="button" class="vench" data-ev="'+vx.ev+'">'+ic("bell",10)+' Vence: '+vx.cli+'</button>'}).join("")+'</div>'}).join("");
+      var hrs=[7,8,9,10,11,12,13,14,15,16,17,18],w='<div class="scroll-x"><div class="wk" style="--cols:'+days.length+';min-width:'+(days.length>1?640:0)+'px"><div class="hd" style="border-left:0"></div>'+days.map(function(x){var bd=bdaysOn(key(x));return '<div class="hd'+(key(x)===TD?' today':'')+(bd.length?' bday':'')+'" data-day="'+key(x)+'">'+DIA3[x.getDay()]+'<b>'+x.getDate()+'</b>'+(bd.length?'<span class="bdh">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')+vencOn(key(x)).map(function(vx){return '<button type="button" class="vench" data-ev="'+vx.ev+'">'+ic("bell",10)+' Vence: '+vx.cli+'</button>'}).join("")+recOn(key(x)).map(function(r){return '<button type="button" class="rech'+(r.pago?' pg':'')+'" data-rec="'+r.id+'" title="'+esc(recTit(r))+'">'+ic("rec",10)+' '+esc(r.nome)+'</button>'}).join("")+'</div>'}).join("");
       var LAY={};days.forEach(function(x){var evs=evOn(key(x)),ends=[];evs.forEach(function(e){var ln=0;while(ends[ln]>e.h)ln++;ends[ln]=e.h+e.dur;e._ln=ln});var tot=Math.max(1,ends.length);evs.forEach(function(e){e._n=tot});LAY[key(x)]=evs});
       hrs.forEach(function(hr){w+='<div class="hr">'+hr+':00</div>'+days.map(function(x){var evs=LAY[key(x)].filter(function(e){return e.h===hr});
         return '<div class="cell">'+evs.map(function(e){var wdt=100/e._n;return '<button type="button" class="blk'+(e.id===st.ev?' on':'')+'" data-ev="'+e.id+'" style="--c:'+SERV[e.s].c+';top:2px;height:'+(Math.min(e.dur,19-e.h)*44-4)+'px;left:calc('+(e._ln*wdt)+'% + 2px);width:calc('+wdt+'% - 4px);right:auto" title="'+hh(e.h)+' · '+e.cli+' · '+svShort(e)+'"><b>'+e.cli+'</b><small>'+svShort(e)+'</small></button>'}).join("")+'</div>'}).join("")});
@@ -1338,9 +1350,9 @@ VIEWS.agenda=function(v){
       var yr=d.getFullYear(),y='<div class="yr">';
       for(var m=0;m<12;m++){var f=new Date(yr,m,1),n=new Date(yr,m+1,0).getDate(),tot=0,g="";
         for(var e=0;e<f.getDay();e++)g+="<i></i>";
-        for(var dd=1;dd<=n;dd++){var dt=new Date(yr,m,dd),cnt=evOn(key(dt)).length;tot+=cnt;var bdy=bdaysOn(key(dt));g+='<i class="'+(cnt>=5?"l3":cnt>=3?"l2":cnt>0?"l1":"")+(key(dt)===TD?" td":"")+(bdy.length?" bd":"")+(vencOn(key(dt)).length?" vc":"")+'"'+(bdy.length?' title="Aniversário: '+bdy.map(function(f){return f.nome}).join(", ")+'"':'')+'>'+dd+'</i>'}
+        for(var dd=1;dd<=n;dd++){var dt=new Date(yr,m,dd),cnt=evOn(key(dt)).length;tot+=cnt;var bdy=bdaysOn(key(dt));g+='<i class="'+(cnt>=5?"l3":cnt>=3?"l2":cnt>0?"l1":"")+(key(dt)===TD?" td":"")+(bdy.length?" bd":"")+(vencOn(key(dt)).length?" vc":recOn(key(dt)).length?" rc":"")+'"'+(bdy.length?' title="Aniversário: '+bdy.map(function(f){return f.nome}).join(", ")+'"':recOn(key(dt)).length?' title="'+esc(recOn(key(dt)).map(recTit).join(" | "))+'"':'')+'>'+dd+'</i>'}
         y+='<div class="ym" data-m="'+m+'"><h5>'+MES[m]+'<span>'+tot+' visitas</span></h5><div class="g">'+g+'</div></div>'}
-      b.innerHTML=y+'</div><div class="leg2" style="margin-top:4px"><span><i style="background:var(--hidra-50)"></i>1–2 visitas</span><span><i style="background:var(--hidra-100)"></i>3–4</span><span><i style="background:var(--hidra-400)"></i>5 ou mais</span><span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span class="lg-vc">'+ic("bell",11)+'Vencimento de garantia</span></div>';
+      b.innerHTML=y+'</div><div class="leg2" style="margin-top:4px"><span><i style="background:var(--hidra-50)"></i>1–2 visitas</span><span><i style="background:var(--hidra-100)"></i>3–4</span><span><i style="background:var(--hidra-400)"></i>5 ou mais</span><span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span class="lg-vc">'+ic("bell",11)+'Vencimento de garantia</span><span class="lg-rc">'+ic("rec",11)+'A receber</span></div>';
     }
     load();
     if(st.ev&&EVENTS.find(function(x){return x.id===st.ev}))card(st.ev);else side(st.sel||TD);
@@ -1349,6 +1361,7 @@ VIEWS.agenda=function(v){
   function side(k){
     st.sel=k;st.ev=null;var evs=evOn(k),p=k.split("-"),dt=new Date(+p[0],+p[1]-1,+p[2]);
     $("#sdCard").innerHTML='<div class="ch"><h4>'+(k===TD?"Hoje · ":"")+DIA3[dt.getDay()]+", "+p[2]+"/"+p[1]+'</h4><span class="sub">'+evs.length+' visita'+(evs.length===1?'':'s')+'</span></div>'+bdaysOn(k).map(function(f){var idade=+k.slice(0,4)-+f.nasc.slice(0,4);return '<div class="bdbar">'+ic("cake",16)+'<span><b>Aniversário de '+f.nome+'</b><small>'+f.cargo+' · '+idade+' anos</small></span></div>'}).join("")+'<ul class="ls sdl">'
+     +recOn(k).map(function(r){return '<div class="recbar" data-rec="'+r.id+'" tabindex="0">'+ic("rec",16)+'<span><b>'+(r.pago?'Recebido de ':'A receber de ')+esc(r.nome)+' · '+brl(r.valor)+'</b><small>'+esc(r.serv)+' · '+recSt(r)[1]+'. Clique para abrir a cobrança.</small></span></div>'}).join("")
      +vencOn(k).map(function(x){return '<div class="vencbar" data-ev="'+x.ev+'" tabindex="0">'+ic("bell",16)+'<span><b>Vence a garantia de '+x.cli+'</b><small>'+x.svs.join(", ")+' · feito em '+dmy(x.last)+'. Ligar e agendar nova aplicação.</small></span></div>'}).join("")
      +(evs.length?evs.map(function(e){return '<li data-ev="'+e.id+'" tabindex="0"><span class="tm">'+hh(e.h)+'</span><span class="bar-t" style="background:'+SERV[e.s].c+'"></span><span class="grow"><b>'+e.cli+'</b><small>'+svShort(e)+' · '+e.dur+'h</small></span><span class="chev" aria-hidden="true">›</span></li>'}).join(""):'<li class="mut">Sem visitas neste dia.</li>')+'</ul>'
      +'<button class="ghost" type="button" data-newon="'+k+'">'+ic("plus",12)+' Agendar neste dia</button>';
@@ -1367,7 +1380,7 @@ VIEWS.agenda=function(v){
      +(c?'<div><small>Contato</small><span>'+c.contato+'</span></div><div><small>Telefone</small><span>'+c.tel+'</span></div>':'')+'</div>'
      +(grp.length>1?'<div class="sub">Datas deste agendamento</div><ul class="dlist">'+grp.map(function(x){return '<li'+(x.id===e.id?' class="on"':'')+' data-ev="'+x.id+'">'+DIA3[new Date(x.date+"T12:00").getDay()]+', '+dmy(x.date)+' · '+hh(x.h)+'</li>'}).join("")+'</ul>':'')
      +(e.obs?'<div class="sub">Observações</div><p class="txt">'+e.obs+'</p>':'')
-     +'<div class="acts"><button class="cta rq" type="button" data-mkos>'+ic("os",13)+' Gerar OS</button><button class="ghost" type="button" data-com>'+ic("down",13)+' Baixar comunicado</button>'+(c?'<a class="ghost" href="#cli" data-cli="'+c.id+'">Ver cliente</a>':'')+'<button class="ghost" type="button" data-del>Excluir</button></div></div>';
+     +'<div class="acts"><button class="ghost" type="button" data-com>'+ic("down",13)+' Baixar comunicado</button>'+(c?'<a class="ghost" href="#cli" data-cli="'+c.id+'">Ver cliente</a>':'')+'<button class="ghost" type="button" data-del>Excluir</button></div></div>';
     mark();
   }
   /* aniversários da equipe no mês em exibição */
@@ -1402,9 +1415,9 @@ VIEWS.agenda=function(v){
     if(t.closest("#cPrev")||t.closest("#cNext")){var dir=t.closest("#cNext")?1:-1,d=st.d;
       if(st.view==="mes")st.d=new Date(d.getFullYear(),d.getMonth()+dir,1);else if(st.view==="semana")st.d=addDays(d,7*dir);else if(st.view==="dia")st.d=addDays(d,dir);else st.d=new Date(d.getFullYear()+dir,0,1);render();return}
     if(t.closest("#cToday")){st.d=new Date(TODAY);render();return}
+    var rcb=t.closest("[data-rec]");if(rcb){REC_SEL=+rcb.dataset.rec;location.hash="#rec";return}
     var evb=t.closest("[data-ev]");if(evb&&!t.closest(".modal")){card(evb.dataset.ev);if(window.innerWidth<1100)$("#sdCard").scrollIntoView({behavior:"smooth",block:"nearest"});return}
     if(t.closest("[data-back]")){side(st.sel);return}
-    if(t.closest("[data-mkos]")){var ev=EVENTS.find(function(x){return x.id===st.ev}),c=CLIENTES.find(function(x){return x.nome===ev.cli});go("os");location.hash="os";if(VIEWS.os.pre)VIEWS.os.pre(c?c.id:null,ev);return}
     var cl=t.closest("[data-cli]");if(cl){CLI_SEL=+cl.dataset.cli;CLI_OPEN=true;return}
     if(t.closest("[data-del]")){var ev2=EVENTS.find(function(x){return x.id===st.ev});EVENTS.splice(EVENTS.indexOf(ev2),1);st.ev=null;render();toast("Agendamento de "+ev2.cli+" excluído.");return}
     var nd=t.closest("[data-newon]");if(nd){openNew(nd.dataset.newon);return}
@@ -1431,7 +1444,7 @@ VIEWS.agenda=function(v){
       $("#evModal").hidden=true;var p2=first.date.split("-");st.d=new Date(+p2[0],+p2[1]-1,+p2[2]);st.ev=first.id;render();
       toast(ds.length>1?ds.length+" datas agendadas para "+cli+".":"Agendado para "+dmy(first.date)+".");}
   });
-  v.addEventListener("keydown",function(e){if(e.key==="Enter"){var li=e.target.closest(".sdl [data-ev]");if(li)card(li.dataset.ev)}});
+  v.addEventListener("keydown",function(e){if(e.key==="Enter"){var rb=e.target.closest(".recbar");if(rb){REC_SEL=+rb.dataset.rec;location.hash="#rec";return}var li=e.target.closest(".sdl [data-ev]");if(li)card(li.dataset.ev)}});
   VIEWS.agenda.show=function(){render()};
   render();
 };
@@ -1545,107 +1558,6 @@ function openDriveModal(q,cb,cliAtual){
   _drvCb=cb;_drvCli=cliAtual||null;$("#dvQ").value=q||"";draw();m.hidden=false;setTimeout(function(){$("#dvQ").focus()},30);
   gStatus().then(function(st){if(!st.conectado){erro({erro:"O Google Drive não está conectado. O administrador conecta em Configurações › Integrações."});return}gPastas().then(draw,erro)});
 }
-VIEWS.os=function(v){
-  v.innerHTML='<div class="grid">'
-  +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Ordens neste mês</span><button class="plus" type="button" id="osNewTop" aria-label="Nova OS">+</button></div><b class="num" id="osMes"></b><p class="hs" id="osMesS"></p></div>'
-  +'<div class="card c9"><div class="ch"><h4>Como funciona</h4><span class="pill go">Google Drive · Monte Fuji Dedetizadora e Desentupidora</span></div><div class="kp" style="--n:3">'
-   +'<div><span class="sq">'+ic("drive",14)+'</span><span class="t">1. Busque</span><b style="font-size:13px;white-space:normal">O cliente: a pasta dele no Drive vem junto</b></div>'
-   +'<div><span class="sq">'+ic("os",14)+'</span><span class="t">2. Preencha</span><b style="font-size:13px;white-space:normal">Serviço, observações e data</b></div>'
-   +'<div><span class="sq">'+ic("print",14)+'</span><span class="t">3. Gere</span><b style="font-size:13px;white-space:normal">Termo de execução salvo na pasta do cliente</b></div></div></div>'
-  +'<div class="card c6"><div class="ch"><h4>Nova ordem de serviço</h4><div class="steps"><span class="on" id="stp1"><i>1</i>Cliente</span><span id="stp2"><i>2</i>Serviço</span><span><i>3</i>Gerar e salvar</span></div></div>'
-   +'<div class="fld"><div class="lrow"><label for="oCli">Cliente</label><span style="display:flex;gap:12px"><button class="lnk" type="button" id="oDrvBusca">'+ic("drive",11)+' Começar pela pasta do Drive</button><button class="lnk" type="button" id="oNewCli">'+ic("plus",11)+' Novo cliente</button></span></div>'+cliPick("oCli","")+'</div>'
-   +'<div class="dbox" id="oDrive"></div>'
-   +'<div class="form">'
-   +'<div class="fld full"><label for="oSv">Serviço a ser executado</label><textarea id="oSv" rows="2" placeholder="Ex.: desobstrução dos vasos do banheiro feminino do 13º e 23º andar e PNE do 4º"></textarea><small class="hint">Sai em letras maiúsculas na OS, como no modelo.</small></div>'
-   +'<div class="fld full"><label for="oObs">Observações</label><textarea id="oObs" placeholder="Opcional. Se ficar vazio, a OS mostra “-”"></textarea></div>'
-   +'<div class="fld"><label for="oD">Data</label><input id="oD" type="date" value="'+TD+'"></div></div>'
-   +'<div class="drive">'+ic("drive",15)+'Arquivo: <code id="oPath"></code></div>'
-   +'<div class="acts"><button class="ghost" type="button" id="oPrint">'+ic("print",13)+' Imprimir</button><button class="cta" type="button" id="oGen">Gerar OS</button></div></div>'
-  +'<div class="card c6"><div class="ch"><h4>Pré-visualização</h4><span class="pill ok">Modelo Monte Fuji · Termo de execução</span></div><div class="a4wrap"><div class="a4" id="oDoc"></div></div></div>'
-  +'<div class="card c12"><div class="ch"><h4>Ordens emitidas</h4><div class="r"><div class="filt" role="group" aria-label="Status"><button type="button" aria-pressed="true">Todas</button><button type="button" aria-pressed="false">Concluída</button><button type="button" aria-pressed="false">Aguardando assinatura</button><button type="button" aria-pressed="false">Cancelada</button></div></div></div><div class="scroll-x"><table class="tb" id="osTb"><thead><tr><th>Número ⇅</th><th>Cliente</th><th>Serviço</th><th>Status</th><th>Arquivo</th></tr></thead><tbody></tbody></table></div></div>'
-  +'</div>';
-  function cli(){var n=$("#oCli").value.trim();return CLIENTES.find(function(c){return c.nome===n})}
-  function svs(){var t=$("#oSv").value.trim();return t?[t]:[]}
-  var _sug=null;
-  function drive(){
-    var c=cli(),b=$("#oDrive");_sug=null;
-    if(!c){b.className="dbox";b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>Cliente não encontrado</b><small>Escolha um cliente da lista ou cadastre um novo.</small></span></div>';return}
-    if(GDRIVE.st&&!GDRIVE.st.conectado){b.className="dbox none";b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>Google Drive não conectado</b><small>'+(EU.papel==="admin"?(GDRIVE.st.configurado?'Conecte em Configurações › Integrações para as OS irem direto para a pasta do cliente.':'Falta configurar a ligação com o Google (veja o guia).'):'Peça ao administrador para conectar em Configurações › Integrações.')+' A OS é registrada mesmo assim.</small></span>'+(EU.papel==="admin"?'<a class="ghost" href="#cfg">Configurações</a>':'')+'</div>';return}
-    var pid=c.pastaId,pn=c.pasta,auto=false;
-    if(!pid){_sug=gSugestao(c);if(_sug){pid=_sug.id;pn=pastaNome(_sug);auto=true}}
-    if(!pid){b.className="dbox none";
-      if(!GDRIVE.pastas&&gLigado())gPastas().then(function(){if(cli()===c)drive()},function(){});
-      b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>'+(GDRIVE.pastas||!gLigado()?'Pasta do cliente não encontrada':'Procurando a pasta no Drive…')+'</b><small>'+(GDRIVE.pastas?'Nenhuma pasta com o nome de '+esc(c.nome)+'. Escolha a pasta uma vez e o sistema guarda.':'Pasta de '+esc(c.nome)+' no Google Drive.')+'</small></span><button class="ghost" type="button" id="oLink">Escolher pasta</button></div>';return}
-    b.className="dbox";var fs=osDoCliente(c).filter(function(o){return o[7]&&o[7].doc});
-    b.innerHTML='<div class="dh">'+ic("drive",16)+'<span class="grow"><b>'+esc(pn)+'</b><small>'+(auto?'Encontrada pelo nome do cliente. Confira antes de gerar.':'Pasta do cliente no Google Drive')+' · '+fs.length+' OS salva'+(fs.length===1?'':'s')+'</small></span><a class="ghost" href="'+pastaUrl(pid)+'" target="_blank" rel="noopener">Abrir pasta ↗</a><button class="dots" type="button" id="oLink" title="Trocar pasta" aria-label="Trocar pasta">⇄</button></div>'
-     +(fs.length?'<ul class="fls">'+fs.slice(0,3).map(function(o){return '<li><span class="ft os">DOC</span><span class="grow"><a href="'+esc(o[7].doc.url)+'" target="_blank" rel="noopener">'+esc(o[7].doc.nome)+'</a></span><span class="sub">'+dmy(o[1])+'</span></li>'}).join("")+'</ul>':'');
-  }
-  function doc(){
-    var c=cli()||{nome:$("#oCli").value.trim()||"Cliente",razao:$("#oCli").value.trim()||"—",doc:"—",contato:"—",tel:"—",end:"—"},d=$("#oD").value||TD,sv=svs();
-    var pp=(cli()&&cli().pastaId)?c.pasta:_sug?pastaNome(_sug):"";
-    $("#oPath").textContent=nextOS()+" - Termo de execução de serviço - "+c.nome+(gLigado()?(pp?" · pasta "+pp:" · escolha a pasta"):"");
-    $("#oGen").textContent=gLigado()?"Gerar OS e salvar no Drive":"Registrar OS";
-    $("#stp1").className=cli()?"ok":"on";$("#stp1").firstChild.textContent=cli()?"✓":"1";$("#stp2").className=cli()?"on":"";
-    var dd=new Date(d+"T12:00"),dt=dd.getDate()+" de "+MES[dd.getMonth()]+" de "+dd.getFullYear(),esc=function(x){return String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;")};
-    var resp=c.contato.split("(")[0].trim(),obs=$("#oObs").value.trim();
-    $("#oDoc").innerHTML='<div class="tes"><img class="lg" alt="Monte Fuji Desentupidora e Dedetizadora" src="'+LOGO+'"><h1>Termo de execução de serviço</h1>'
-    +'<table><colgroup><col style="width:22%"><col style="width:31%"><col></colgroup><tr><th colspan="3">1. Identificação do local tratado</th></tr><tr><td class="k">Nome:</td><td colspan="2">'+esc(c.nome)+'</td></tr><tr><td class="k">CPF/CNPJ:</td><td colspan="2">'+esc(c.doc)+'</td></tr><tr><td class="k">Endereço:</td><td colspan="2">'+esc(c.end.replace(" · ",", "))+'</td></tr><tr><td class="k">Responsável 1:</td><td>'+esc(resp)+'</td><td><span class="k">Celular/Tel:</span> '+esc(c.tel)+'</td></tr></table>'
-    +'<table class="b2"><tr><th>2. Serviços a serem executados</th></tr></table><p class="sv">'+(sv.length?esc(sv[0]).toUpperCase():'<span class="ph">DESCREVA O SERVIÇO NO FORMULÁRIO</span>')+'</p>'
-    +'<h2>Observações</h2><p class="ob">'+(obs?esc(obs).replace(/\n/g,"<br>"):"-")+'</p>'
-    +'<p class="dec">A Monte Fuji Desentupidora e Dedetizadora vem por meio desta declarar que executou o(s) serviço(s) acima citado(s) no(s) Cliente(s)/endereço(s) informado(s), utilizando produto(s), equipamento(s) e técnica(s) adequada(s), garantindo a qualidade, segurança e eficácia na realização do(s) procedimento(s).</p><div class="ln"></div><div class="ln"></div><div class="ln"></div>'
-    +'<table class="em"><colgroup><col style="width:22%"><col style="width:31%"><col></colgroup><tr><th colspan="3">3. Em caso de emergência, contatar:</th></tr><tr><td class="k">Bombeiros:</td><td colspan="2">193</td></tr><tr><td class="k">Samu:</td><td colspan="2">192</td></tr><tr><td class="k">Monte Fuji:</td><td colspan="2">(11) 9 9742-0106</td></tr></table>'
-    +'<p class="dt">'+dt+'</p>'
-    +'<div class="sg"><div><b>Responsável Técnico</b><div class="ass">assinatura digitalizada</div><span>Biólogo Tarcísio George - CRBio 94338/01-D</span></div><div><b>Assinatura do responsável pelo acompanhamento</b><div class="ass e"></div><span>Início ________ &nbsp;Término ________</span></div></div>'
-    +'<div class="ft2">Monte Fuji DDT e DS | CNPJ: 05.889.593/0001-02 | R. Anhanguera, 549 - Piratininga, Osasco/SP | (11) 9 9742-0106 | (11) 3609-5222</div></div>';
-  }
-  function upd(){drive();doc()}
-  function printOS(){if(!cli()){toast("Escolha um cliente cadastrado.");return}var w=window.open("","_blank");if(!w){toast("Libere as janelas pop-up para imprimir.");return}
-    var css=Array.prototype.map.call(document.querySelectorAll("style"),function(x){return x.textContent}).join("\n");
-    w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+nextOS()+'</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap"><style>'+css+' body{background:#fff;margin:0;padding:0}.a4{max-width:none;box-shadow:none;border:0;margin:0 auto;width:190mm}@page{size:A4;margin:10mm}</style></head><body><div class="a4">'+$("#oDoc").innerHTML+'</div><script>setTimeout(function(){print()},500)<\/script></body></html>');w.document.close()}
-  function table(f){
-    var mk=TD.slice(0,7),om=OSL.filter(function(o){return String(o[1]).slice(0,7)===mk});$("#osMes").innerHTML=om.length+'<small>OS</small>';$("#osMesS").textContent=MES[TODAY.getMonth()]+" · "+OSL.length+" no total";
-    $("#osTb tbody").innerHTML=OSL.filter(function(o){return !f||f==="Todas"||o[6]===f}).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[2]+'</td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td><td>'+osArquivo(o)+'</td></tr>'}).join("")||'<tr><td colspan="5" class="mut">Nenhuma ordem de serviço emitida ainda.</td></tr>';
-  }
-  /* começou pela pasta: acha o cliente dono dela, ou liga a pasta ao cliente escolhido */
-  function pickFolder(f){
-    var c=CLIENTES.find(function(x){return x.pastaId===f.id})||CLIENTES.filter(function(x){return !x.pastaId&&gNota(x,f)===1})[0];
-    if(c){if(!c.pastaId){c.pastaId=f.id;c.pasta=pastaNome(f);dbSave()}$("#oCli").value=c.nome;upd();toast("Pasta de "+c.nome+" selecionada.");return}
-    var cur=cli();
-    if(cur&&!cur.pastaId){linkFolder(cur,f);return}
-    openCliModal(f.nome,function(nc){nc.pastaId=f.id;nc.pasta=pastaNome(f);dbSave();$("#oCli").value=nc.nome;upd()});toast("Esta pasta ainda não tem cliente no sistema. Complete o cadastro.");
-  }
-  function linkFolder(c,f){var dono=CLIENTES.find(function(x){return x.pastaId===f.id&&x!==c});if(dono){toast("Essa pasta já é de "+dono.nome+".");return}
-    c.pastaId=f.id;c.pasta=pastaNome(f);dbSave();upd();toast("Pasta “"+f.nome+"” ligada a "+c.nome+".")}
-  function gerar(){var c=cli();if(!c){toast("Escolha um cliente cadastrado.");return}if(!svs().length){toast("Descreva o serviço a ser executado.");$("#oSv").focus();return}
-    var pid=c.pastaId||(_sug&&_sug.id)||"",f=_sug;
-    if(gLigado()&&!pid){toast("Escolha a pasta do cliente no Google Drive.");openDriveModal("",function(x){linkFolder(c,x);gerar()},c);return}
-    var bt=$("#oGen");bt.disabled=true;bt.textContent=gLigado()?"Salvando no Drive…":"Registrando…";
-    api("POST","/api/os",{cli:c.id,servico:svs()[0],obs:$("#oObs").value.trim(),data:$("#oD").value||TD,pastaId:pid,drive:gLigado()}).then(function(r){
-      if(!c.pastaId&&f&&r.pasta&&r.pasta.id===f.id){c.pastaId=f.id;c.pasta=pastaNome(f);dbSave()}
-      return dbPoll(true).then(function(){$("#oSv").value="";$("#oObs").value="";table();upd();
-        toast(r.doc?r.numero+" salva na pasta do cliente no Drive.":r.numero+" registrada."+(r.aviso?" "+r.aviso:""))});
-    }).catch(function(e){toast(e.erro||"Não consegui registrar a OS. Tente de novo.")}).then(function(){bt.disabled=false;doc()});
-  }
-  v.addEventListener("input",function(e){if(e.target.closest(".form")||e.target.id==="oCli")upd()});
-  v.addEventListener("change",function(e){if(e.target.closest(".form"))doc()});
-  v.addEventListener("click",function(e){
-    if(e.target.closest("#oPrint")){printOS();return}
-    if(e.target.closest("#osNewTop")){$("#oCli").focus();return}
-    if(e.target.closest("#oDrvBusca")){openDriveModal("",pickFolder);return}
-    if(e.target.closest("#oLink")){var c0=cli();if(c0)openDriveModal("",function(f){linkFolder(c0,f)},c0);return}
-    var od=e.target.closest("[data-osdrive]");if(od){osSalvarDrive(od.dataset.osdrive,function(){table();upd()});return}
-    if(e.target.closest("#oNewCli")){var t=$("#oCli").value.trim();openCliModal(t&&!cli()?t:"",function(c){$("#oCli").value=c.nome;upd()});return}
-    if(e.target.closest("#oGen")){gerar();return}
-    var f=e.target.closest(".filt button");if(f){$$(".filt button",v).forEach(function(b){b.setAttribute("aria-pressed",b===f?"true":"false")});table(f.textContent)}
-  });
-  VIEWS.os.pre=function(id,ev){var c=CLIENTES.find(function(x){return x.id===id});if(c)$("#oCli").value=c.nome;else if(ev)$("#oCli").value=ev.cli;
-    if(ev){$("#oSv").value=(ev.svs||[ev.s]).join(" e ");$("#oD").value=ev.date;$("#oObs").value=ev.obs||"";toast("OS preenchida com os dados do agendamento.")}upd()};
-  bindPick($("#oCli"),function(){upd()});
-  table();upd();
-  gStatus().then(function(){if(gLigado())gPastas().then(upd,function(){});upd();table()});
-  VIEWS.os.show=function(){table();upd()};
-};
-
 /* ===== E-MAILS ===== */
 VIEWS.mail=function(v){
   var st={f:"responder",id:null,cx:"todas"};
@@ -1720,15 +1632,15 @@ VIEWS.cli=function(v){
     var ini=c.nome.split(" ").filter(function(w){return w.length>2}).map(function(w){return w[0]}).join("").slice(0,2);
     v.innerHTML='<div class="grid">'
     +'<div class="card c12 phead"><div class="prof"><button class="ghost" type="button" data-cback>‹ Clientes</button><span class="bigav">'+ini+'</span><div style="flex:1;min-width:0"><h3>'+c.nome+'</h3><span class="sub">'+c.razao+' · '+c.doc+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px"><span class="tag">'+c.perfil+'</span>'+(gv.length?'<span class="pill go">Garantia vigente</span>':'')+(f.n?'<span class="pill '+(f.venc?'er':'al')+'">'+(f.venc?'Inadimplente':'Fatura em aberto')+'</span>':f.lista.length?'<span class="pill ok">Pagamentos em dia</span>':'')+'</div></div>'
-     +'<div class="pacts"><button class="ghost" type="button" data-agd>'+ic("agenda",13)+' Agendar</button><button class="ghost" type="button" data-mail>'+ic("mail",13)+' E-mail</button><button class="cta" type="button" data-newos="'+c.id+'">'+ic("plus",13)+'Nova OS</button></div></div></div>'
+     +'<div class="pacts"><button class="ghost" type="button" data-agd>'+ic("agenda",13)+' Agendar</button><button class="ghost" type="button" data-mail>'+ic("mail",13)+' E-mail</button></div></div></div>'
     +'<div class="card c12" style="padding:12px"><div class="kp" style="--n:4">'
      +'<div><span class="sq">'+ic("os",14)+'</span><span class="t">Último serviço</span><b class="num" style="font-size:15px">'+(h?(SERV[h[1]]?SERV[h[1]].sh:h[1]):"—")+'</b><span class="pill ne">'+(h?dmy(h[0]):'Sem serviços')+'</span></div>'
      +'<div><span class="sq">'+ic("shield",14)+'</span><span class="t">Garantia</span><b class="num" style="font-size:15px">'+(gv.length?'até '+dmy(gv[0][1].fim):'Nenhuma vigente')+'</b><span class="pill '+(gv.length?(gv[0][1].left<=30?'al':'go'):'ne')+'">'+(gv.length?'faltam '+gv[0][1].left+' dias':'—')+'</span></div>'
      +'<div><span class="sq">'+ic("agenda",14)+'</span><span class="t">Próxima visita</span><b class="num" style="font-size:15px">'+(pv[0]?DIA3[new Date(pv[0].date+"T12:00").getDay()]+', '+dmy(pv[0].date).slice(0,5)+' · '+hh(pv[0].h):'Nada agendado')+'</b><span class="pill in">'+(pv[0]?svShort(pv[0]):'Agenda')+'</span></div>'
      +'<div><span class="sq">'+ic("fat",14)+'</span><span class="t">Em aberto</span><b class="num" style="font-size:15px">'+(f.n?brl(f.aberto):'R$ 0,00')+'</b><span class="pill '+(f.n?(f.venc?'er':'al'):'ok')+'">'+(f.n?f.n+' fatura'+(f.n>1?'s':''):'Em dia')+' · Conta Azul</span></div></div></div>'
     +'<div class="c8" style="display:flex;flex-direction:column;gap:10px">'
-     +'<div class="card"><div class="ch"><h4>Ordens de serviço</h4><div class="r"><span class="src">Sistema · Drive</span><button class="ghost" type="button" data-newos="'+c.id+'">+ Nova OS</button></div></div>'
-      +(os.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Número</th><th>Serviço</th><th>Status</th><th>Arquivo</th></tr></thead><tbody>'+os.slice(0,6).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td><td>'+osArquivo(o)+'</td></tr>'}).join("")+'</tbody></table></div>':'<p class="mut txt">Nenhuma OS emitida ainda.</p>')+'</div>'
+     +(os.length?'<div class="card"><div class="ch"><h4>Ordens de serviço</h4><div class="r"><span class="src">Sistema · Drive</span></div></div>'
+      +'<div class="scroll-x"><table class="tb"><thead><tr><th>Número</th><th>Serviço</th><th>Status</th><th>Arquivo</th></tr></thead><tbody>'+os.slice(0,6).map(function(o){return '<tr><td><b>'+o[0]+'</b><small>'+dmy(o[1])+'</small></td><td>'+o[3]+'</td><td>'+stPill(o[6])+'</td><td>'+osArquivo(o)+'</td></tr>'}).join("")+'</tbody></table></div></div>':'')
      +'<div class="card"><div class="ch"><h4>Pagamentos</h4><span class="src">Conta Azul</span></div>'
       +(f.lista.length?'<div class="scroll-x"><table class="tb"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Forma</th><th class="r">Valor</th><th>Status</th></tr></thead><tbody>'+f.lista.map(function(p){return '<tr><td class="num">'+dmy(p[0])+'</td><td>'+p[1]+'</td><td>'+p[4]+'</td><td class="r num">'+brl(p[2])+'</td><td><span class="pill '+(p[3]==="Pago"?'ok':p[3]==="Vencido"?'er':'al')+'">'+p[3]+'</span></td></tr>'}).join("")+'</tbody></table></div>':'<p class="mut txt">A Conta Azul ainda não foi conectada. Os pagamentos deste cliente aparecem aqui depois da integração.</p>')+'</div>'
      +'<div class="card"><div class="ch"><h4>E-mails</h4><span class="src">Gmail · 3 caixas</span></div><ul class="ls">'
@@ -1755,7 +1667,6 @@ VIEWS.cli=function(v){
     if(e.target.closest("[data-newcli]")){openCliModal(digits(st.q).length===14?st.q:"",function(c){CLI_SEL=c.id;CLI_OPEN=true;prof()});return}
     if(e.target.closest("[data-clink]")){var c=CLIENTES.find(function(x){return x.id===CLI_SEL});openDriveModal("",function(fd){var dono=CLIENTES.find(function(x){return x.pastaId===fd.id&&x!==c});if(dono){toast("Essa pasta já é de "+dono.nome+".");return}c.pastaId=fd.id;c.pasta=pastaNome(fd);dbSave();prof();toast("Pasta ligada a "+c.nome+".")},c);return}
     var od=e.target.closest("[data-osdrive]");if(od){osSalvarDrive(od.dataset.osdrive,prof);return}
-    var n=e.target.closest("[data-newos]");if(n){location.hash="#os";setTimeout(function(){VIEWS.os.pre&&VIEWS.os.pre(+n.dataset.newos)},30);return}
     if(e.target.closest("[data-agd]")){location.hash="#agenda";return}
     var em=e.target.closest("[data-em]");if(em||e.target.closest("[data-mail]")){location.hash="#mail";return}
   });
@@ -1775,7 +1686,7 @@ VIEWS.rec=function(v){
   +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Total a receber</span><button class="plus" type="button" data-rnew aria-label="Novo lançamento">+</button></div><b class="num" id="rTot"></b><p class="hs" id="rTotS"></p><div class="ha"><button class="w" type="button" data-rnew style="white-space:nowrap">+ Novo</button></div></div>'
   +'<div class="card c9"><div class="ch"><h4>Clientes avulsos</h4><span class="sub">Serviços sem contrato, cobrados um a um</span></div><div class="kp" style="--n:4" id="rKp"></div></div>'
   +'<div class="split c12"><div class="card"><div class="ch"><h4>Cobranças</h4><button class="cta" type="button" data-rnew>'+ic("plus",13)+'Novo lançamento</button></div>'
-   +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ, nota fiscal ou OS" aria-label="Buscar cobranças"></div></div>'
+   +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ ou nota fiscal" aria-label="Buscar cobranças"></div></div>'
    +'<div class="filt" role="group" aria-label="Situação" id="rFil"></div>'
    +'<div class="scroll-x"><table class="tb" id="rTb"><thead><tr><th>Cliente</th><th>Nota fiscal</th><th>Cobrança enviada</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody></tbody></table></div></div>'
    +'<div class="card" id="rDet"></div></div></div>'
@@ -1787,7 +1698,7 @@ VIEWS.rec=function(v){
    +'<div class="fld full"><label for="rEm">E-mail para cobrança</label><input id="rEm" type="email"></div></div>'
    +'<div class="sub" style="margin:4px 0 -4px">Cobrança</div><div class="form">'
    +'<div class="fld full"><label for="rServ">Serviço realizado</label><input id="rServ" placeholder="Ex.: desobstrução do vaso do banheiro do 3º andar"></div>'
-   +'<div class="fld"><label for="rOs">OS vinculada</label><input id="rOs" placeholder="OS-2026-0000"></div><div class="fld"><label for="rVal">Valor (R$)</label><input id="rVal" type="number" min="0" step="10" placeholder="0,00"></div>'
+   +'<div class="fld full"><label for="rVal">Valor (R$)</label><input id="rVal" type="number" min="0" step="10" placeholder="0,00"></div>'
    +'<div class="fld"><label for="rNf">Nº da nota fiscal</label><input id="rNf" inputmode="numeric" placeholder="Deixe vazio se ainda não emitiu"></div><div class="fld"><label for="rNfD">Emissão da nota</label><input id="rNfD" type="date"></div>'
    +'<div class="fld"><label for="rVenc">Vencimento</label><input id="rVenc" type="date"></div><div class="fld"><label for="rForma">Forma de pagamento</label><select id="rForma"><option>Boleto</option><option>Pix</option><option>Transferência</option><option>Dinheiro</option></select></div>'
    +'<div class="fld"><label for="rCob">Cobrança enviada em</label><input id="rCob" type="date"></div><div class="fld"><label for="rCanal">Enviada por</label><select id="rCanal"><option value="">Ainda não enviada</option><option>E-mail</option><option>WhatsApp</option><option>Correio</option><option>Em mãos</option></select></div>'
@@ -1806,7 +1717,7 @@ VIEWS.rec=function(v){
   function table(){
     $("#rFil").innerHTML=FIL.map(function(f){return '<button type="button" aria-pressed="'+(st.f===f)+'">'+f+'</button>'}).join("");
     var q=norm(st.q.trim()),qd=digits(q);
-    var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.os+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
+    var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
     $("#rTb tbody").innerHTML=L.map(function(r){var s=recSt(r),late=s[1]==="Vencido"?diffDays(TD,r.venc):0;
       return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td>'+(r.cob?'<b>'+dmy(r.cob)+'</b><small>'+r.canal+'</small>':'<span class="pill al">Não enviada</span>')+'</td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma)+'</small></td><td class="r num">'+brl(r.valor)+'</td><td><span class="pill '+s[0]+'">'+s[1]+'</span></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
   }
@@ -1820,7 +1731,7 @@ VIEWS.rec=function(v){
     tl.sort(function(a,b){return (a[0]||"0")<(b[0]||"0")?-1:1});
     var ini=r.nome.split(" ").filter(function(w){return w.length>2}).map(function(w){return w[0]}).join("").slice(0,2);
     $("#rDet").innerHTML='<div class="prof"><span class="bigav">'+ini+'</span><div style="flex:1;min-width:0"><h3>'+r.nome+'</h3><span class="sub">'+r.doc+'</span></div><span class="pill '+s[0]+'">'+s[1]+'</span></div>'
-    +'<div class="rval"><span class="sub">Valor</span><b class="num">'+brl(r.valor)+'</b><span class="sub">'+r.serv+(r.os?' · '+r.os:'')+'</span></div>'
+    +'<div class="rval"><span class="sub">Valor</span><b class="num">'+brl(r.valor)+'</b><span class="sub">'+r.serv+'</span></div>'
     +'<div class="kv2"><div><small>Nota fiscal</small><span>'+(r.nf?'Nº '+r.nf+' · '+dmy(r.nfData):'A emitir')+'</span></div><div><small>Cobrança enviada</small><span>'+(r.cob?dmy(r.cob)+' · '+r.canal:'Não enviada')+'</span></div><div><small>Vencimento</small><span>'+dmy(r.venc)+' · '+r.forma+'</span></div><div><small>Recebido em</small><span>'+(r.pago?dmy(r.pago):'—')+'</span></div><div><small>Contato</small><span>'+r.contato+' · '+r.tel+'</span></div><div><small>E-mail</small><span>'+r.email+'</span></div></div>'
     +(!r.pago&&!r.nf?'<div class="nfrow"><div class="fld"><label for="dNf">Nº da nota fiscal</label><input id="dNf" inputmode="numeric" placeholder="Ex.: 2390"></div><button class="cta rq" type="button" data-dnf>Registrar nota</button></div>':'')
     +'<div class="ch"><h4>Histórico da cobrança</h4></div><ul class="tl">'+tl.map(function(t){return '<li><span class="pt" style="border-color:'+({ok:"var(--ok)",in:"var(--hidra)",al:"var(--alerta)",er:"var(--erro)",ne:"#CAC9C5"}[t[2]])+'"></span><span><b>'+t[1]+'</b></span><span class="sub num">'+(t[0]?dmy(t[0]):'')+'</span></li>'}).join("")+'</ul>'
@@ -1850,7 +1761,7 @@ VIEWS.rec=function(v){
       var nome=$("#rNome").value.trim(),val=+$("#rVal").value;
       if(!nome){toast("Informe o cliente.");$("#rNome").focus();return}if(!val){toast("Informe o valor.");$("#rVal").focus();return}if(!$("#rVenc").value){toast("Informe o vencimento.");return}
       var cob=$("#rCob").value,canal=$("#rCanal").value;if(cob&&!canal)canal="E-mail";if(canal&&!cob)cob=TD;
-      var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",os:$("#rOs").value.trim(),valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?($("#rNfD").value||TD):"",cob:cob,canal:canal,forma:$("#rForma").value,venc:$("#rVenc").value,pago:"",hist:[],obs:$("#rObs").value.trim()};
+      var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?($("#rNfD").value||TD):"",cob:cob,canal:canal,forma:$("#rForma").value,venc:$("#rVenc").value,pago:"",hist:[],obs:$("#rObs").value.trim()};
       RECEBER.push(n);REC_SEL=n.id;st.f="Todos";$("#rModal").hidden=true;all();toast("Lançamento de "+brl(val)+" para "+nome+" salvo.");return}
     var r=RECEBER.find(function(x){return x.id===REC_SEL});
     if(e.target.closest("[data-dnf]")){var nf=$("#dNf").value.trim();if(!nf){toast("Informe o número da nota.");$("#dNf").focus();return}r.nf=nf;r.nfData=TD;all();toast("NF "+nf+" registrada.");return}
@@ -1859,7 +1770,7 @@ VIEWS.rec=function(v){
     if(e.target.closest("[data-dpago]")){r.pago=TD;all();toast("Pagamento de "+brl(r.valor)+" registrado.");return}
   });
   all();
-  VIEWS.rec.show=all;
+  VIEWS.rec.show=function(){var r=RECEBER.find(function(x){return x.id===REC_SEL});if(r&&!pass(r))st.f="Todos";all()};
 };
 
 /* ===== FUNCIONÁRIOS ===== */
@@ -1949,15 +1860,6 @@ VIEWS.cfg=function(v){
 (function(){var m=location.search.match(/[?&]google=(\w+)/);if(!m)return;try{history.replaceState(null,"",location.pathname+location.hash)}catch(e){}
   var t={ok:"Google Drive conectado. As OS já vão direto para a pasta de cada cliente.",cancelado:"Conexão com o Google cancelada.",permissoes:"Marque todas as permissões pedidas pelo Google e tente de novo.",erro:"Não consegui conectar o Google Drive. Tente de novo."}[m[1]];
   if(t)setTimeout(function(){toast(t)},800)})();
-
-/* ===== CENTRAL DE AJUDA ===== */
-VIEWS.help=function(v){
-  v.innerHTML='<div class="grid"><div class="card c8"><div class="ch"><h4>Dúvidas frequentes</h4></div><div class="search" style="flex:none">'+ic("search",14)+'<input placeholder="Buscar ajuda" aria-label="Buscar ajuda"></div>'
-  +[["Como trago os clientes do Conta Azul?","No Conta Azul, abra Cadastros › Clientes e use Exportar. Aqui, em Clientes, clique em Importar do Conta Azul e escolha a planilha. Clientes com o mesmo nome não são duplicados, então dá para importar de novo quando quiser."],["Como gero uma ordem de serviço?","Em Ordens de serviço, escolha o cliente, descreva o serviço e clique em Gerar OS e salvar no Drive. O termo de execução é criado como documento Google, no modelo da Monte Fuji, dentro da pasta do cliente. A pasta é encontrada pelo nome; se não for, escolha uma vez e o sistema guarda."],["Como cadastro uma visita na agenda?","Em Agenda, clique em + Novo agendamento ou em Agendar numa das melhores datas sugeridas. Os campos definitivos ainda serão definidos."],["O assistente lê meus e-mails?","No sistema final, sim: ele lê a caixa da empresa para sugerir respostas. Nada é enviado sem você clicar em enviar."],["Onde vejo as garantias de um cliente?","Em Clientes, selecione o cliente. As garantias aparecem com a barra de tempo restante e a data de término."],["Os dados financeiros são atualizados sozinhos?","Sim, quando a Conta Azul estiver conectada. A sincronização prevista é a cada hora."]].map(function(f,i){return '<details class="faq"'+(i?'':' open')+'><summary>'+f[0]+'</summary><p>'+f[1]+'</p></details>'}).join("")+'</div>'
-  +'<div class="c4" style="display:flex;flex-direction:column;gap:10px"><div class="card hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Falar com o suporte</span></div><b style="font-size:20px">atendimento@mfuji.com.br</b><p class="hs">(11) 3609-5222 · segunda a sábado</p></div>'
-  +'<div class="card"><div class="ch"><h4>Atalhos</h4></div><ul class="ls"><li><span class="grow"><b style="font-weight:500">Abrir o assistente</b></span><span class="tag">Ctrl + J</span></li><li><span class="grow"><b style="font-weight:500">Fechar janelas</b></span><span class="tag">Esc</span></li><li><span class="grow"><b style="font-weight:500">Abrir um dia na agenda</b></span><span class="tag">Duplo clique</span></li></ul></div>'
-  +'<div class="card"><div class="ch"><h4>Versão</h4><span class="pill ok">Versão 2</span></div><p class="txt">v2.0 · em uso desde '+dmy(TD)+'. Dados no banco compartilhado da Cloudflare, com login individual e atualização automática entre a equipe.</p></div></div></div>';
-};
 
 /* ===== início ===== */
 document.addEventListener("click",function(e){

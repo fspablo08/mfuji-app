@@ -148,6 +148,9 @@ function vencList(){var g={};EVENTS.forEach(function(e){if(!e.gar)return;var k=e
   return Object.keys(g).map(function(k){var x=g[k];x.venc=addMonths(x.last,x.gar);
     x.renov=EVENTS.some(function(e){return e.cli===x.cli&&(e.grp||e.id)!==k&&e.date>x.last});return x}).filter(function(x){return !x.renov})}
 function vencOn(k){return vencList().filter(function(x){return x.venc===k})}
+/* Vencimentos do A receber, em verde na agenda */
+function recOn(k){return RECEBER.filter(function(r){return r.venc===k})}
+function recTit(r){return (r.pago?"Recebido: ":"A receber: ")+r.nome+" · "+brl(r.valor)}
 function vencMsg(x){var c=CLIENTES.find(function(y){return y.nome===x.cli}),nm=c&&c.contato?firstName(c.contato):x.cli;
   return "Olá, "+nm+"! Tudo bem? Aqui é da Monte Fuji. O serviço de "+x.svs.join(", ").toLowerCase()+" realizado em "+dmy(x.last)+" está com a garantia vencendo em "+dmy(x.venc)+". Para manter o local protegido, precisamos agendar uma nova aplicação. Qual a melhor data para vocês?"}
 /* Uma semana antes do vencimento cria a anotação de contato (uma vez só, mesmo se apagada) */
