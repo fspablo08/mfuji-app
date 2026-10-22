@@ -4,7 +4,7 @@ Endereço: **https://mfuji-app.pablovsfernandes.workers.dev**
 
 ## Como funciona
 - **Servidor**: Worker `mfuji-app` na Cloudflare (código em `worker/index.js`). Ele entrega as telas só depois do login e responde a API dos dados.
-- **Banco de dados**: Cloudflare D1, banco `mfuji-db` (id `5b7f760b-07f6-440b-8cec-79009bbe2aef`), região leste da América do Norte. Uma tabela por módulo: `clientes`, `funcionarios`, `agenda`, `ordens_servico`, `tarefas`, `receber`, `emails`, `avisos_garantia`, além de `usuarios`, `sessoes`, `historico` e `controle`. A estrutura está em `migrations/`.
+- **Banco de dados**: Cloudflare D1, banco `mfuji-db` (id `5b7f760b-07f6-440b-8cec-79009bbe2aef`), região leste da América do Norte. Uma tabela por módulo: `clientes`, `funcionarios`, `agenda`, `ordens_servico`, `tarefas`, `receber`, `emails`, `avisos_garantia`, além de `usuarios`, `sessoes`, `historico`, `controle` e `integracoes` (autorização do Google Drive, só o servidor lê). A estrutura está em `migrations/`.
 - **Backups automáticos**: KV `mfuji-backups`, uma cópia completa por dia às 3h (Brasília), guardada por 60 dias, e outra antes de cada importação.
 - **Atualização entre usuários**: cada tela pergunta ao servidor a cada 5 segundos (15 s quando parada, pausa com a aba escondida) se algo mudou e se redesenha sozinha. Uma mudança feita por uma pessoa aparece para as outras em até uns 5 a 10 segundos. Se a pessoa estiver digitando ou com uma janela aberta, a tela espera ela terminar para se redesenhar.
 - **Nada some de verdade**: excluir marca o registro como excluído e guarda como estava na tabela `historico` (quem, quando, antes e depois).
