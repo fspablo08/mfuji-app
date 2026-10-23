@@ -621,17 +621,22 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .bkh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
 .bkh b{font-size:13px;font-weight:600;color:var(--fluxo)}
 /* Vencimento de garantia */
-.mgrid .d.venc{box-shadow:inset 0 0 0 2px #D64545;background:#FDEDED}
 .vencb,.vench{display:flex;align-items:center;gap:4px;width:100%;font:inherit;font-size:10.5px;font-weight:700;color:#fff;background:#D64545;border:0;border-radius:5px;padding:3px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;animation:vpulse 2s ease-in-out infinite}
 .vench{margin-top:3px;font-size:9.5px;justify-content:center}
 .vencb svg,.vench svg{flex:none}
+.vencb span,.vench span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @keyframes vpulse{50%{box-shadow:0 0 0 3px rgba(214,69,69,.25)}}
 @media (prefers-reduced-motion:reduce){.vencb,.vench{animation:none}}
 @media (max-width:760px){.vencb{font-size:0;padding:0;height:6px}.vencb svg{display:none}}
 .vencbar{display:flex;align-items:center;gap:10px;background:#FDEDED;border:1px solid #F2B8B8;color:#B42323;border-radius:11px;padding:9px 11px;cursor:pointer}
 .vencbar b{display:block;font-size:12px;font-weight:700}
 .vencbar small{display:block;font-size:10.5px;opacity:.9}
-.yr .g i.vc{background:#D64545!important;color:#fff;font-weight:700}
+.vencbar,.recbar{min-width:0;margin-bottom:6px}
+.vencbar svg,.recbar svg{flex:none}
+.vencbar>span,.recbar>span{flex:1;min-width:0}
+.vencbar b,.vencbar small,.recbar b,.recbar small{white-space:normal;overflow:visible;overflow-wrap:anywhere;color:inherit}
+.yr .g i.vc{position:relative}
+.yr .g i.vc::after{content:"";position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:#D64545}
 .lg-vc{display:inline-flex;align-items:center;gap:5px;color:#B42323;font-weight:600}
 /* A receber: vencimentos em verde na agenda */
 .recb,.rech{display:flex;align-items:center;gap:4px;width:100%;font:inherit;font-size:10.5px;font-weight:700;color:#fff;background:var(--ok);border:0;border-radius:5px;padding:3px 6px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
@@ -667,6 +672,7 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .bdh svg{stroke:#fff}
 .yr .g i.bd{background:var(--legado)!important;color:#fff!important;box-shadow:none!important}
 .bdbar{background:#F8EFD2!important;border:1.5px solid var(--legado)!important}
+.bdcard[hidden]{display:none}
 .bdcard{border:1.5px solid var(--legado);background:linear-gradient(180deg,#FBF5E3,var(--branco) 70%)}
 .bdcard h4{display:flex;align-items:center;gap:6px;color:var(--legado-700)}
 .bdl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
@@ -1336,13 +1342,13 @@ VIEWS.agenda=function(v){
       $("#cTitle").textContent=MES[d.getMonth()]+" "+d.getFullYear();
       var first=new Date(d.getFullYear(),d.getMonth(),1),start=addDays(first,-first.getDay()),h='<div class="mgrid">'+DIA3.map(function(x){return '<div class="wd">'+x+'</div>'}).join("");
       for(var i=0;i<42;i++){var c=addDays(start,i),evs=evOn(key(c)),out=c.getMonth()!==d.getMonth(),bd=bdaysOn(key(c)),mx=bd.length?2:3;
-        h+='<div class="d'+(bd.length&&!out?' bday':'')+(!out&&vencOn(key(c)).length?' venc':'')+(out?' out':'')+(key(c)===TD?' today':'')+(c.getDay()===0?' sun':'')+(key(c)===st.sel?' selday':'')+'" data-day="'+key(c)+'"><span class="n"><span>'+c.getDate()+'</span>'+(evs.length?'<small class="mut" style="font-weight:400">'+evs.length+'</small>':'')+'</span>'+(bd.length&&!out?'<span class="bdc" title="Aniversário: '+bd.map(function(f){return f.nome}).join(", ")+'">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')
-         +(out?'':vencOn(key(c)).map(function(x){return '<button type="button" class="vencb" data-ev="'+x.ev+'" title="Garantia vence hoje: '+x.cli+'">'+ic("bell",10)+' Vence: '+x.cli+'</button>'}).join(""))+(out?'':recOn(key(c)).map(function(r){return '<button type="button" class="recb'+(r.pago?' pg':'')+'" data-rec="'+r.id+'" title="'+esc(recTit(r))+'">'+ic("rec",10)+' '+esc(r.nome)+'</button>'}).join(""))+evs.slice(0,mx).map(function(e){return '<button type="button" class="ev'+(e.id===st.ev?' on':'')+'" data-ev="'+e.id+'" style="--c:'+svCor(e.s)+'">'+String(e.h).padStart(2,"0")+'h '+e.cli+'</button>'}).join("")+(evs.length>mx?'<span class="more">+'+(evs.length-mx)+' mais</span>':'')+'</div>'}
+        h+='<div class="d'+(bd.length&&!out?' bday':'')+(out?' out':'')+(key(c)===TD?' today':'')+(c.getDay()===0?' sun':'')+(key(c)===st.sel?' selday':'')+'" data-day="'+key(c)+'"><span class="n"><span>'+c.getDate()+'</span>'+(evs.length?'<small class="mut" style="font-weight:400">'+evs.length+'</small>':'')+'</span>'+(bd.length&&!out?'<span class="bdc" title="Aniversário: '+bd.map(function(f){return f.nome}).join(", ")+'">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')
+         +(out?'':vencOn(key(c)).map(function(x){return '<button type="button" class="vencb" data-ev="'+x.ev+'" title="Garantia vence hoje: '+x.cli+'">'+ic("bell",10)+'<span>Vence: '+x.cli+'</span></button>'}).join(""))+(out?'':recOn(key(c)).map(function(r){return '<button type="button" class="recb'+(r.pago?' pg':'')+'" data-rec="'+r.id+'" title="'+esc(recTit(r))+'">'+ic("rec",10)+' '+esc(r.nome)+'</button>'}).join(""))+evs.slice(0,mx).map(function(e){return '<button type="button" class="ev'+(e.id===st.ev?' on':'')+'" data-ev="'+e.id+'" style="--c:'+svCor(e.s)+'">'+String(e.h).padStart(2,"0")+'h '+e.cli+'</button>'}).join("")+(evs.length>mx?'<span class="more">+'+(evs.length-mx)+' mais</span>':'')+'</div>'}
       b.innerHTML=h+'</div>';
     }else if(st.view==="semana"||st.view==="dia"){
       var days=[];if(st.view==="dia")days=[d];else{var s=addDays(d,-d.getDay());for(var j=0;j<7;j++)days.push(addDays(s,j))}
       $("#cTitle").textContent=st.view==="dia"?DIA3[d.getDay()]+", "+d.getDate()+" de "+MES[d.getMonth()].toLowerCase():days[0].getDate()+" a "+days[6].getDate()+" de "+MES[days[6].getMonth()].toLowerCase();
-      var hrs=[7,8,9,10,11,12,13,14,15,16,17,18],w='<div class="scroll-x"><div class="wk" style="--cols:'+days.length+';min-width:'+(days.length>1?640:0)+'px"><div class="hd" style="border-left:0"></div>'+days.map(function(x){var bd=bdaysOn(key(x));return '<div class="hd'+(key(x)===TD?' today':'')+(bd.length?' bday':'')+'" data-day="'+key(x)+'">'+DIA3[x.getDay()]+'<b>'+x.getDate()+'</b>'+(bd.length?'<span class="bdh">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')+vencOn(key(x)).map(function(vx){return '<button type="button" class="vench" data-ev="'+vx.ev+'">'+ic("bell",10)+' Vence: '+vx.cli+'</button>'}).join("")+recOn(key(x)).map(function(r){return '<button type="button" class="rech'+(r.pago?' pg':'')+'" data-rec="'+r.id+'" title="'+esc(recTit(r))+'">'+ic("rec",10)+' '+esc(r.nome)+'</button>'}).join("")+'</div>'}).join("");
+      var hrs=[7,8,9,10,11,12,13,14,15,16,17,18],w='<div class="scroll-x"><div class="wk" style="--cols:'+days.length+';min-width:'+(days.length>1?640:0)+'px"><div class="hd" style="border-left:0"></div>'+days.map(function(x){var bd=bdaysOn(key(x));return '<div class="hd'+(key(x)===TD?' today':'')+(bd.length?' bday':'')+'" data-day="'+key(x)+'">'+DIA3[x.getDay()]+'<b>'+x.getDate()+'</b>'+(bd.length?'<span class="bdh">'+ic("cake",11)+bd.map(function(f){return firstName(f.nome)}).join(", ")+'</span>':'')+vencOn(key(x)).map(function(vx){return '<button type="button" class="vench" data-ev="'+vx.ev+'">'+ic("bell",10)+'<span>Vence: '+vx.cli+'</span></button>'}).join("")+recOn(key(x)).map(function(r){return '<button type="button" class="rech'+(r.pago?' pg':'')+'" data-rec="'+r.id+'" title="'+esc(recTit(r))+'">'+ic("rec",10)+' '+esc(r.nome)+'</button>'}).join("")+'</div>'}).join("");
       var LAY={};days.forEach(function(x){var evs=evOn(key(x)),ends=[];evs.forEach(function(e){var ln=0;while(ends[ln]>e.h)ln++;ends[ln]=e.h+e.dur;e._ln=ln});var tot=Math.max(1,ends.length);evs.forEach(function(e){e._n=tot});LAY[key(x)]=evs});
       hrs.forEach(function(hr){w+='<div class="hr">'+hr+':00</div>'+days.map(function(x){var evs=LAY[key(x)].filter(function(e){return e.h===hr});
         return '<div class="cell">'+evs.map(function(e){var wdt=100/e._n;return '<button type="button" class="blk'+(e.id===st.ev?' on':'')+'" data-ev="'+e.id+'" style="--c:'+svCor(e.s)+';top:2px;height:'+(Math.min(e.dur,19-e.h)*44-4)+'px;left:calc('+(e._ln*wdt)+'% + 2px);width:calc('+wdt+'% - 4px);right:auto" title="'+hh(e.h)+' · '+e.cli+' · '+svShort(e)+'"><b>'+e.cli+'</b><small>'+svShort(e)+'</small></button>'}).join("")+'</div>'}).join("")});
@@ -1352,7 +1358,7 @@ VIEWS.agenda=function(v){
       var yr=d.getFullYear(),y='<div class="yr">';
       for(var m=0;m<12;m++){var f=new Date(yr,m,1),n=new Date(yr,m+1,0).getDate(),tot=0,g="";
         for(var e=0;e<f.getDay();e++)g+="<i></i>";
-        for(var dd=1;dd<=n;dd++){var dt=new Date(yr,m,dd),cnt=evOn(key(dt)).length;tot+=cnt;var bdy=bdaysOn(key(dt));g+='<i class="'+(cnt>=5?"l3":cnt>=3?"l2":cnt>0?"l1":"")+(key(dt)===TD?" td":"")+(bdy.length?" bd":"")+(vencOn(key(dt)).length?" vc":recOn(key(dt)).length?" rc":"")+'"'+(bdy.length?' title="Aniversário: '+bdy.map(function(f){return f.nome}).join(", ")+'"':recOn(key(dt)).length?' title="'+esc(recOn(key(dt)).map(recTit).join(" | "))+'"':'')+'>'+dd+'</i>'}
+        for(var dd=1;dd<=n;dd++){var dt=new Date(yr,m,dd),cnt=evOn(key(dt)).length;tot+=cnt;var bdy=bdaysOn(key(dt));g+='<i class="'+(cnt>=5?"l3":cnt>=3?"l2":cnt>0?"l1":"")+(key(dt)===TD?" td":"")+(bdy.length?" bd":"")+(recOn(key(dt)).length?" rc":"")+(vencOn(key(dt)).length?" vc":"")+'"'+(bdy.length?' title="Aniversário: '+bdy.map(function(f){return f.nome}).join(", ")+'"':recOn(key(dt)).length?' title="'+esc(recOn(key(dt)).map(recTit).join(" | "))+'"':'')+'>'+dd+'</i>'}
         y+='<div class="ym" data-m="'+m+'"><h5>'+MES[m]+'<span>'+tot+' visitas</span></h5><div class="g">'+g+'</div></div>'}
       b.innerHTML=y+'</div><div class="leg2" style="margin-top:4px"><span><i style="background:var(--hidra-50)"></i>1–2 visitas</span><span><i style="background:var(--hidra-100)"></i>3–4</span><span><i style="background:var(--hidra-400)"></i>5 ou mais</span><span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span class="lg-vc">'+ic("bell",11)+'Vencimento de garantia</span><span class="lg-rc">'+ic("rec",11)+'A receber</span></div>';
     }
