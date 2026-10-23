@@ -386,7 +386,7 @@ function comDados(o){var p=o.date.split("-"),pub=o.pub==="col";
 var COM_LOADED=null;
 function comImgs(){if(COM_LOADED)return COM_LOADED;
   var fl=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 20px "Lexend Deca"'),document.fonts.load('400 20px "Lexend Deca"')]).catch(function(){}):Promise.resolve();
-  COM_LOADED=Promise.all(["top","mid","bot"].map(function(k){return new Promise(function(ok){var i=new Image();i.onload=function(){ok(i)};i.onerror=function(){ok(null)};i.src=COM_IMG[k]})}).concat([fl]));return COM_LOADED}
+  COM_LOADED=Promise.all(["top","mid","bot","masc"].map(function(k){return new Promise(function(ok){var i=new Image();i.onload=function(){ok(i)};i.onerror=function(){ok(null)};i.src=COM_IMG[k]})}).concat([fl]));return COM_LOADED}
 /* Desenha a página A4 (em pontos, como o modelo original) num canvas */
 function comCanvas(o,sc){return comImgs().then(function(im){
   var W=595.28,H=841.89,cv=document.createElement("canvas");cv.width=Math.round(W*sc);cv.height=Math.round(H*sc);
@@ -407,20 +407,20 @@ function comCanvas(o,sc){return comImgs().then(function(im){
   y=para([{t:"No dia "},{t:o.data,b:1},{t:", a partir das "+o.hora+", realizaremos os serviços de "+o.serv+" "+o.onde+"."}],332.97+d,11.6,18,INK);
   o.ps.forEach(function(p){y=para([{t:p}],y+24,11.6,18,INK)});
   /* Observação em destaque, antes do Atenciosamente */
-  var obs=(o.obs||"").split(/\n+/).map(function(t){return t.trim()}).filter(Boolean);
+  var fb=y+4,obs=(o.obs||"").split(/\n+/).map(function(t){return t.trim()}).filter(Boolean);
   if(obs.length){var bx=L+16,bw=R-L-30,top=y+22,yy=top+36,ys=[];
     obs.forEach(function(t,i){ys.push(yy);yy=para([{t:t,b:1}],yy,11.6,17,INK,bx,bw,true)+(i<obs.length-1?22:0)});
     var bh=yy-top+16;x.fillStyle="#DCE6F7";x.beginPath();if(x.roundRect)x.roundRect(L,top,R-L,bh,8);else x.rect(L,top,R-L,bh);x.fill();
     x.fillStyle=AZ;x.fillRect(L,top,4,bh);fnt(700,10.5);x.fillText("OBSERVAÇÃO IMPORTANTE",bx,top+18);
-    obs.forEach(function(t,i){para([{t:t,b:1}],ys[i],11.6,17,{c:INK,b:1},bx,bw)});y=top+bh-20}
+    obs.forEach(function(t,i){para([{t:t,b:1}],ys[i],11.6,17,{c:INK,b:1},bx,bw)});fb=top+bh;y=fb-20}
   fnt(400,11);x.fillStyle=INK;x.fillText("Atenciosamente,",L,y+44);x.fillText("Equipe Monte Fuji",L,y+60);
-  /* fundo: o mascote encolhe (ancorado embaixo) quando o texto fica comprido */
+  /* fundo: o mascote fica à direita, ao lado do Atenciosamente, e encolhe (ancorado embaixo) se o texto em largura total chegar perto */
   mx.fillStyle="#B5B5B5";mx.fillRect(0,0,W,H);
   if(im[0])mx.drawImage(im[0],12.26,12.04,571.71,99.51);
   mx.fillStyle="#EEEEEE";mx.beginPath();if(mx.roundRect)mx.roundRect(12.26,119.97,571.71,656.25,12);else mx.rect(12.26,119.97,571.71,656.25);mx.fill();
-  var mh=Math.max(110,Math.min(270.34,(776.22-(y+60)-14)/.73)),mw2=571.71*mh/270.34;
-  if(im[1]){mx.drawImage(im[1],12.26,505.88,571.71,270.34);
-    if(mh<270.34){var cw=560/1400;mx.fillStyle="#EEEEEE";mx.fillRect(12.26,505.88,571.71*cw,270.34);mx.drawImage(im[1],0,0,1400*cw,662,12.26,776.22-mh,mw2*cw,mh)}}
+  if(im[1])mx.drawImage(im[1],12.26,505.88,571.71,270.34);
+  var mh=Math.min(176.8,755.4-(fb+14));
+  if(im[3]&&mh>=70){var mw2=mh*im[3].width/im[3].height;mx.drawImage(im[3],551.8-mw2,755.4-mh,mw2,mh)}
   if(im[2])mx.drawImage(im[2],12.26,782.53,571.71,47.15);
   mx.setTransform(1,0,0,1,0,0);mx.drawImage(tc,0,0);
   return cv})}
