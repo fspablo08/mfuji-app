@@ -467,6 +467,7 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 #evDates{display:grid;gap:6px}
 .drow{display:grid;grid-template-columns:minmax(0,1fr) 104px 34px;gap:6px;align-items:center}
 .drow .dots{width:34px;height:34px;font-size:15px}
+.drow.cmd{grid-template-columns:minmax(0,1fr) 34px}
 .add-d{justify-self:start;border:1.5px dashed #C9C9C5;background:transparent;border-radius:9px;padding:6px 10px;font-size:11.5px;color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:2px}
 .add-d:hover{border-color:var(--hidra);color:var(--hidra)}
 .seg.gar{display:flex;flex-wrap:wrap}

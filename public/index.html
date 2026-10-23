@@ -477,6 +477,7 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 #evDates{display:grid;gap:6px}
 .drow{display:grid;grid-template-columns:minmax(0,1fr) 104px 34px;gap:6px;align-items:center}
 .drow .dots{width:34px;height:34px;font-size:15px}
+.drow.cmd{grid-template-columns:minmax(0,1fr) 34px}
 .add-d{justify-self:start;border:1.5px dashed #C9C9C5;background:transparent;border-radius:9px;padding:6px 10px;font-size:11.5px;color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:2px}
 .add-d:hover{border-color:var(--hidra);color:var(--hidra)}
 .seg.gar{display:flex;flex-wrap:wrap}
@@ -1898,16 +1899,13 @@ function comTextos(svs){var pr="Contamos com a compreensão e a colaboração de
   var ps=[];svs.forEach(function(s){var t=SERV[s]&&SERV[s].g==="Reservatórios de água"?ag:pr;if(ps.indexOf(t)<0)ps.push(t)});
   if(ps.length>1)ps=[ps[0],ps[1].replace("Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. ","")];return ps}
 function listaPt(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" e "+a[a.length-1]}
-/* "No dia 25 de outubro de 2026, a partir das 9h" ou, com vários dias, "Nos dias 25 e 26 de outubro de 2026, a partir das 9h";
-   mês e ano só se repetem quando mudam, e o horário vai em cada dia quando não é o mesmo em todos */
-function comQuando(ds){var mesmaH=ds.every(function(x){return x.h===ds[0].h}),sg=[{t:ds.length>1?"Nos dias ":"No dia "}];
-  ds.forEach(function(x,i){var p=x.d.split("-"),q=ds[i+1]&&ds[i+1].d.split("-"),t=String(+p[2]);
-    if(!q||!mesmaH||q[1]!==p[1]||q[0]!==p[0])t+=" de "+MES[+p[1]-1];if(!q||!mesmaH||q[0]!==p[0])t+=" de "+p[0];
-    if(i)sg.push({t:i===ds.length-1?" e ":", "});sg.push({t:t,b:1});if(!mesmaH)sg.push({t:" (a partir das "+x.h+"h)"})});
-  if(mesmaH)sg.push({t:", a partir das "+ds[0].h+"h"});return sg}
+/* "No dia 25 de Outubro de 2026" ou, com vários dias, "Nos dias 25, 26 e 27 de Outubro de 2026" (mês e ano só se repetem quando mudam) */
+function comQuando(ds,h){var ps=ds.map(function(x){return x.split("-")});
+  var t=listaPt(ps.map(function(p,i){var q=ps[i+1],s=String(+p[2]);if(!q||q[1]!==p[1]||q[0]!==p[0])s+=" de "+MES[+p[1]-1];if(!q||q[0]!==p[0])s+=" de "+p[0];return s}));
+  return [{t:ds.length>1?"Nos dias ":"No dia "},{t:t,b:1},{t:", a partir das "+h+"h"}]}
 function comDados(o){var pub=o.pub==="col";
   return {nome:o.nome,tit:listaPt(o.svs).toUpperCase(),saud:pub?"PREZADOS COLABORADORES.":"SENHORES (A) CONDÔMINOS.",
-    quando:comQuando(o.ds),obs:o.obs,serv:listaPt(o.svs.map(function(s){return s.toLowerCase()})),onde:pub?"nas dependências da empresa":"nas áreas comuns do Condomínio",ps:comTextos(o.svs)}}
+    quando:comQuando(o.ds,o.h),obs:o.obs,serv:listaPt(o.svs.map(function(s){return s.toLowerCase()})),onde:pub?"nas dependências da empresa":"nas áreas comuns do Condomínio",ps:comTextos(o.svs)}}
 var COM_LOADED=null;
 function comImgs(){if(COM_LOADED)return COM_LOADED;
   var fl=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('700 20px "Lexend Deca"'),document.fonts.load('400 20px "Lexend Deca"')]).catch(function(){}):Promise.resolve();
@@ -1965,7 +1963,8 @@ function openComunicado(e){
   if(!m){document.body.insertAdjacentHTML("beforeend",'<div class="modal" id="cmModal" hidden><div class="box cmbox" role="dialog" aria-modal="true" aria-labelledby="cmT"><div class="ch" style="margin:0"><h3 id="cmT">Comunicado para o cliente</h3><span class="pill ok">PDF</span></div>'
     +'<div class="cmg"><div class="cmf"><div class="fld"><label for="cmNome">Nome no comunicado</label><input id="cmNome" type="text"></div>'
     +'<div class="fld"><label for="cmPub">Para quem</label><select id="cmPub"><option value="cond">Condôminos</option><option value="col">Colaboradores</option></select></div>'
-    +'<div class="fld"><span class="lbl">Dias do serviço <small>· a partir das</small></span><div id="cmDias"></div><button class="add-d" type="button" data-cmadd>'+ic("plus",12)+' Adicionar outro dia</button></div>'
+    +'<div class="fld"><span class="lbl">Dias do serviço</span><div id="cmDias"></div><button class="add-d" type="button" data-cmadd>'+ic("plus",12)+' Adicionar outro dia</button></div>'
+    +'<div class="fld"><label for="cmHora">A partir das</label><select id="cmHora">'+[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(function(h){return '<option value="'+h+'">'+h+'h</option>'}).join("")+'</select></div>'
     +'<div class="fld"><label for="cmObs">Observação <small>· opcional, sai em destaque</small></label><textarea id="cmObs" rows="3" placeholder="Ex.: o acesso à garagem ficará fechado das 14h às 16h"></textarea></div>'
     +'<p class="sub" style="margin:0">O serviço e o texto de recomendações vêm do agendamento.</p></div>'
     +'<div class="cmprev"><img id="cmPrev" alt="Prévia do comunicado"></div></div>'
@@ -1975,21 +1974,21 @@ function openComunicado(e){
     m.addEventListener("click",function(ev){
       if(ev.target===m||ev.target.closest("[data-cmx]")){m.hidden=true;return}
       var rm=ev.target.closest("[data-cmrm]");if(rm){if($$("#cmDias .drow").length>1){rm.parentNode.remove();prev()}else toast("O comunicado precisa de pelo menos um dia.");return}
-      if(ev.target.closest("[data-cmadd]")){var ls=cur().ds,ul=ls[ls.length-1];$("#cmDias").insertAdjacentHTML("beforeend",diaRow(ul?ymd(addDays(new Date(ul.d+"T12:00"),1)):"",ul?ul.h:8));prev();return}
+      if(ev.target.closest("[data-cmadd]")){var ls=cur().ds,ul=ls[ls.length-1];$("#cmDias").insertAdjacentHTML("beforeend",diaRow(ul?ymd(addDays(new Date(ul+"T12:00"),1)):""));prev();return}
       if(ev.target.closest("#cmGo")){var o=cur(),bt=$("#cmGo");if(!o.nome){toast("Informe o nome que vai no comunicado.");return}if(!o.ds.length){toast("Informe o dia do serviço.");return}bt.disabled=true;
         comCanvas(comDados(o),2.5).then(function(cv){var b64=cv.toDataURL("image/jpeg",.9).split(",")[1],bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
-          saveFile("comunicado-"+slug(o.nome)+"-"+o.ds[0].d+".pdf",pdfJpeg(u,cv.width,cv.height),function(ok,code){bt.disabled=false;if(ok){m.hidden=true;toast("Comunicado baixado.")}else if(code!=="declined")toast("Não foi possível baixar o arquivo aqui.")})})}
+          saveFile("comunicado-"+slug(o.nome)+"-"+o.ds[0]+".pdf",pdfJpeg(u,cv.width,cv.height),function(ok,code){bt.disabled=false;if(ok){m.hidden=true;toast("Comunicado baixado.")}else if(code!=="declined")toast("Não foi possível baixar o arquivo aqui.")})})}
     });
   }
-  function diaRow(d,h){return '<div class="drow"><input type="date" aria-label="Dia" value="'+(d||"")+'"><select aria-label="A partir das">'+[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(function(x){return '<option value="'+x+'"'+(x===h?' selected':'')+'>'+x+'h</option>'}).join("")+'</select><button class="dots" type="button" data-cmrm aria-label="Remover dia">×</button></div>'}
-  function cur(){var ds=$$("#cmDias .drow").map(function(r){return {d:$("input",r).value,h:+$("select",r).value}}).filter(function(x){return x.d}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
-    ds=ds.filter(function(x,i){return !i||x.d!==ds[i-1].d});
-    return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,ds:ds.length?ds:[],obs:$("#cmObs").value,svs:m._svs}}
-  function prev(){var o=cur();if(!o.ds.length)o.ds=[{d:e.date,h:e.h}];comCanvas(comDados(o),.9).then(function(cv){$("#cmPrev").src=cv.toDataURL("image/png")})}
+  function diaRow(d){return '<div class="drow cmd"><input type="date" aria-label="Dia" value="'+(d||"")+'"><button class="dots" type="button" data-cmrm aria-label="Remover dia">×</button></div>'}
+  function cur(){var ds=$$("#cmDias input").map(function(r){return r.value}).filter(Boolean).sort();
+    ds=ds.filter(function(x,i){return !i||x!==ds[i-1]});
+    return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,ds:ds,h:+$("#cmHora").value,obs:$("#cmObs").value,svs:m._svs}}
+  function prev(){var o=cur();if(!o.ds.length)o.ds=[e.date];comCanvas(comDados(o),.9).then(function(cv){$("#cmPrev").src=cv.toDataURL("image/png")})}
   m._svs=e.svs||[e.s];$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
   /* serviço cadastrado em vários dias: todos os dias do agendamento vão no mesmo comunicado */
   var grp=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];if(!grp.length)grp=[e];
-  $("#cmDias").innerHTML=grp.sort(function(a,b){return a.date<b.date?-1:1}).map(function(x){return diaRow(x.date,x.h)}).join("");
+  $("#cmDias").innerHTML=grp.sort(function(a,b){return a.date<b.date?-1:1}).map(function(x){return diaRow(x.date)}).join("");$("#cmHora").value=String(grp[0].h);
   $("#cmObs").value="";m.hidden=false;prev();
 }
 
