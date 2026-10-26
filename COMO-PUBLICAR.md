@@ -1,6 +1,6 @@
 # Sistema Monte Fuji: publicação, usuários e backup
 
-Endereço: **https://mfuji-app.pablovsfernandes.workers.dev**
+Endereço: **https://sistema.mfuji.com.br** (o antigo, https://mfuji-app.pablovsfernandes.workers.dev, continua funcionando)
 
 ## Como funciona
 - **Servidor**: Worker `mfuji-app` na Cloudflare (código em `worker/index.js`). Ele entrega as telas só depois do login e responde a API dos dados.
@@ -34,5 +34,8 @@ Conferir se a versão nova entrou: abrir `/api/saude` no navegador mostra a vers
 ## Custos
 Tudo roda no plano gratuito da Cloudflare: Workers (100 mil requisições por dia), D1 (5 GB, 5 milhões de leituras e 100 mil gravações por dia) e KV. Com a atualização automática, cada pessoa com o sistema aberto e em uso faz cerca de 720 requisições por hora. Até umas 12 pessoas usando o dia inteiro cabe no gratuito. Passando disso, o plano Workers Paid custa US$ 5 por mês e cobre muito mais.
 
-## Endereço próprio (opcional)
-Em Workers & Pages › mfuji-app › Settings › Domains & Routes, adicione por exemplo `sistema.mfuji.com.br` (o domínio precisa estar na Cloudflare).
+## Endereço próprio
+O endereço `sistema.mfuji.com.br` está no `wrangler.jsonc` (`routes` com `custom_domain`), e a cada publicação a
+Cloudflare liga o Worker a ele, criando sozinha o DNS e o certificado. Para isso o domínio `mfuji.com.br` precisa
+estar ativo na mesma conta da Cloudflare (nameservers da Cloudflare no Registro.br). `workers_dev: true` mantém o
+endereço antigo no ar. Login e sessões valem por endereço: quem trocar de endereço entra de novo uma vez.
