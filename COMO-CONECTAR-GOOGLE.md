@@ -20,8 +20,10 @@ Entre em https://console.cloud.google.com com **atendimento@mfuji.com.br**.
      mostrar "app não verificado": clique em **Avançado › Acessar Sistema Monte Fuji**. É o seu próprio app.
 4. **Clientes › Criar cliente**:
    - Tipo: **Aplicativo da Web**. Nome: `mfuji-app`.
-   - **URIs de redirecionamento autorizados**: `https://mfuji-app.pablovsfernandes.workers.dev/api/google/retorno`
-     (se um dia usar um endereço próprio, acrescente também `https://SEU-ENDERECO/api/google/retorno`).
+   - **URIs de redirecionamento autorizados** (os dois):
+     `https://sistema.mfuji.com.br/api/google/retorno` e
+     `https://mfuji-app.pablovsfernandes.workers.dev/api/google/retorno`.
+     O sistema usa o endereço em que a pessoa está, então o botão Conectar só funciona num endereço que esteja nesta lista.
    - Criar. Copie o **ID do cliente** e a **Chave secreta do cliente**.
 
 ## 2. Cloudflare (uma vez)

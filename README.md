@@ -1,7 +1,7 @@
 # Sistema Monte Fuji
 
 Sistema interno da Monte Fuji (agenda, ordens de serviço, clientes, e-mails, a receber, funcionários),
-com login individual e banco de dados compartilhado na Cloudflare (D1). Endereço: https://mfuji-app.pablovsfernandes.workers.dev
+com login individual e banco de dados compartilhado na Cloudflare (D1). Endereço: https://sistema.mfuji.com.br (o antigo https://mfuji-app.pablovsfernandes.workers.dev continua funcionando)
 
 ## Estrutura
 - `src/`: telas (`shell.html`, `app.css`, `data.js`, `app1.js`, `app2.js`, `app3.js`) e a tela de login (`login.html`).

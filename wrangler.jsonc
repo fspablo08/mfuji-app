@@ -3,6 +3,11 @@
   "name": "mfuji-app",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
+  // Endereço próprio: sistema.mfuji.com.br (Custom Domain; a Cloudflare cria o DNS e o certificado).
+  // O domínio mfuji.com.br precisa estar ativo nesta conta da Cloudflare, senão o deploy falha.
+  "routes": [{ "pattern": "sistema.mfuji.com.br", "custom_domain": true }],
+  // mantém também o endereço antigo (mfuji-app.pablovsfernandes.workers.dev); com routes o padrão seria desligar
+  "workers_dev": true,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
