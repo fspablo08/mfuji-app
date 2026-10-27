@@ -6,14 +6,14 @@ function mfModal(id,html){var m=$("#"+id);if(!m){m=document.createElement("div")
   m.addEventListener("click",function(e){if(e.target===m||e.target.closest("[data-mx]"))m.hidden=true})}
   m.innerHTML='<div class="box" role="dialog" aria-modal="true">'+html+'</div>';m.hidden=false;return m}
 
-/* topo: iniciais de quem está usando, com "Minha conta" */
-(function(){var me=$("#me");if(!me)return;me.textContent=EU.iniciais||"?";me.title=EU.nome+" · "+(PAPEL_TXT[EU.papel]||"");me.setAttribute("aria-label","Minha conta: "+EU.nome);
-  me.addEventListener("click",contaModal)})();
+/* menu lateral: "Minha conta" e "Sair" (o menu é redesenhado, então o clique é delegado) */
+function sair(){dbSave();api("POST","/api/logout",{}).catch(function(){}).then(function(){location.href="/login"})}
+document.addEventListener("click",function(e){var a=e.target.closest("#sideMe,#sideSair");if(!a)return;e.preventDefault();$("#app").classList.remove("nav-open");if(a.id==="sideSair")sair();else contaModal()});
 function contaModal(){
   var m=mfModal("contaModal",'<h3>Minha conta</h3><div class="kv2 one"><div><small>Nome</small><span>'+esc(EU.nome)+'</span></div><div><small>Acesso</small><span>'+esc(EU.email)+'</span></div><div><small>Perfil</small><span>'+(PAPEL_TXT[EU.papel]||EU.papel)+'</span></div></div>'
     +'<div class="form"><div class="fld full"><label for="pwA">Senha atual</label><input id="pwA" type="password" autocomplete="current-password"></div><div class="fld"><label for="pwN">Nova senha</label><input id="pwN" type="password" autocomplete="new-password" placeholder="Pelo menos 8 caracteres"></div><div class="fld"><label for="pwC">Repita a nova senha</label><input id="pwC" type="password" autocomplete="new-password"></div></div>'
     +'<div class="acts" style="flex-wrap:wrap"><button class="ghost" type="button" id="sairBt">Sair do sistema</button><span style="flex:1"></span><button class="ghost" type="button" data-mx>Fechar</button><button class="cta" type="button" id="pwBt">Trocar senha</button></div>');
-  $("#sairBt",m).onclick=function(){dbSave();api("POST","/api/logout",{}).catch(function(){}).then(function(){location.href="/login"})};
+  $("#sairBt",m).onclick=sair;
   $("#pwBt",m).onclick=function(){var a=$("#pwA").value,n=$("#pwN").value;if(n!==$("#pwC").value){toast("A confirmação não confere com a nova senha.");return}
     api("POST","/api/senha",{atual:a,nova:n}).then(function(){m.hidden=true;toast("Senha alterada. Os outros aparelhos com a sua conta foram desconectados.")}).catch(function(e){toast(e.erro||"Não foi possível trocar a senha.")})};
 }

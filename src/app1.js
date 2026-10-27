@@ -23,6 +23,7 @@ var I={
  help:'<circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.8.5-1.3.9-1.3 1.8M8 11.4v.2"/>',
  up:'<path d="M8 13V3M4 7l4-4 4 4"/>',down:'<path d="M8 3v10M4 9l4 4 4-4"/>',wallet:'<rect x="2.5" y="4" width="11" height="9" rx="2"/><path d="M2.5 7h11"/>',
  drive:'<path d="M5.5 2.5h5l4 7-2.5 4h-8l-2.5-4z"/><path d="M5.5 2.5l4 7M1.5 9.5h13M10.5 2.5l-4 7"/>',
+ user:'<circle cx="8" cy="5.5" r="2.8"/><path d="M2.5 14c.7-3 2.8-4.5 5.5-4.5s4.8 1.5 5.5 4.5"/>',out:'<path d="M6 2.5H3.5v11H6M10 5l3 3-3 3M13 8H6"/>',
  bell:'<path d="M4 11V7a4 4 0 018 0v4l1.5 1.5h-11zM6.5 14h3"/>',plus:'<path d="M8 3v10M3 8h10"/>',print:'<path d="M4.5 6V2h7v4M4.5 11.5H3a1 1 0 01-1-1V7a1 1 0 011-1h10a1 1 0 011 1v3.5a1 1 0 01-1 1h-1.5"/><rect x="4.5" y="9" width="7" height="5"/>',
  chk:'<path d="M3 8.5l3 3 7-7"/>',clock:'<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>',pin:'<path d="M8 14s5-4.2 5-8A5 5 0 003 6c0 3.8 5 8 5 8z"/><circle cx="8" cy="6" r="1.6"/>',
  shield:'<path d="M8 1.5l5 2v4c0 3.3-2.2 5.6-5 7-2.8-1.4-5-3.7-5-7v-4z"/>',search:'<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',menu:'<path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>',x:'<path d="M4 4l8 8M12 4l-8 8"/>',
@@ -54,6 +55,7 @@ function renderSide(){
     g[1].forEach(function(i){h+='<a href="#'+i[0]+'" data-v="'+i[0]+'">'+ic(i[0])+i[1]+(BADGE[i[0]]?'<span class="bd'+(BADGER[i[0]]?' r':'')+'">'+BADGE[i[0]]+'</span>':'')+'</a>'});
     h+='</nav>';
   });
+  h+='<nav class="menu" aria-label="Conta"><a href="#" id="sideMe" role="button">'+ic("user")+'Minha conta</a><a href="#" id="sideSair" role="button">'+ic("out")+'Sair</a></nav>';
   h+='<div class="up">'+ic("shield",28).replace('stroke="currentColor"','stroke="#18275E"')+'<b>Plano Condomínio</b><p>“Contratos anuais com visitas programadas e garantia por escrito.”</p><button class="btn-dark" type="button" data-go="cli">Ver condomínios ↗</button></div>';
   $("#side").innerHTML=h;
 }
@@ -63,12 +65,11 @@ function go(v){
   if(!TITLES[v])v="dash";
   $$(".view").forEach(function(s){s.classList.toggle("on",s.id==="v-"+v)});
   $$(".menu a").forEach(function(a){a.classList.toggle("on",a.dataset.v===v);if(a.dataset.v===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
-  var t=TITLES[v];$("#ttl").innerHTML='<b>'+t[2]+'</b><p>'+t[3]+'</p>';
   if(!done[v]&&VIEWS[v]){VIEWS[v]($("#v-"+v));done[v]=1}
   if(VIEWS[v]&&VIEWS[v].show)VIEWS[v].show();
   $("#app").classList.remove("nav-open");
   AI.ctx(v);window.scrollTo(0,0);
-  document.title="Monte Fuji · "+t[1];
+  document.title="Monte Fuji · "+TITLES[v][1];
 }
 
 /* ===== assistente global (gaveta) ===== */
@@ -414,7 +415,7 @@ VIEWS.agenda=function(v){
   function dateRow(d,h){return '<div class="drow"><input type="date" aria-label="Data" value="'+(d||"")+'"><select aria-label="Horário">'+HRS.map(function(x){return '<option value="'+x+'"'+(x===(h||8)?' selected':'')+'>'+hh(x)+'</option>'}).join("")+'</select><button class="dots" type="button" data-rmd aria-label="Remover data">×</button></div>'}
   v.innerHTML='<div class="grid"><div class="card c9" id="calCard"><div class="cal-h"><div class="nav2"><button type="button" id="cPrev" aria-label="Anterior">‹</button><button type="button" id="cNext" aria-label="Próximo">›</button></div><h4 id="cTitle"></h4><button class="ghost" type="button" id="cToday">Hoje</button><span style="flex:1"></span><button class="ghost wpb" type="button" id="cWpp">'+ic("clock",13)+' Horários de amanhã</button><button class="cta" type="button" id="cNew">'+ic("plus",13)+'Novo agendamento</button></div>'
    +'<div class="cal-2"><div class="seg" role="group" aria-label="Visualização"><button type="button" data-cv="dia">Dia</button><button type="button" data-cv="semana">Semana</button><button type="button" data-cv="mes">Mês</button><button type="button" data-cv="ano">Ano</button></div><div class="leg2">'+SFAM.map(function(f){return '<span><i style="background:'+f[1]+'"></i>'+f[0]+'</span>'}).join("")+'<span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span class="lg-rc">'+ic("rec",11)+'A receber</span><span><i style="background:repeating-linear-gradient(135deg,#FFF 0 3px,#DDD 3px 6px);border:1px solid #DDD"></i>Domingo · sem atendimento</span></div></div><div id="cBody"></div></div>'
-   +'<div class="c3" style="display:flex;flex-direction:column;gap:10px"><div class="card" id="sdCard"></div><div class="card bdcard" id="bdCard" hidden></div><div class="card"><div class="ch"><h4>Melhores datas</h4><span class="pill in">Assistente</span></div><p class="txt">Dias úteis com menos visitas nos próximos dias:</p><ul class="ls" id="best"></ul></div><div class="card"><div class="ch"><h4>Carga do mês</h4></div><div class="kp" style="--n:2"><div><span class="t">Visitas</span><b class="num" id="mCount"></b></div><div><span class="t">Dia mais cheio</span><b class="num" id="mTop"></b></div></div></div></div></div>'
+   +'<div class="c3 agside"><div class="card" id="sdCard"></div><div class="card bdcard" id="bdCard" hidden></div><div class="card bestcard"><div class="ch"><h4>Melhores datas</h4><span class="pill in">Assistente</span></div><p class="txt">Dias úteis com menos visitas nos próximos dias:</p><ul class="ls" id="best"></ul></div></div></div>'
    +'<div class="modal" id="wpModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="wpT"><div class="ch" style="margin:0"><h3 id="wpT">Horários de amanhã</h3><span class="pill ok">Para o grupo do WhatsApp</span></div>'
    +'<div class="wprow"><div class="fld"><label for="wpD">Dia</label><input id="wpD" type="date"></div><div class="fld"><label for="wpS">Saudação</label><select id="wpS"><option>Bom dia</option><option>Boa tarde</option><option>Boa noite</option></select></div></div>'
    +'<div class="wpbox"><textarea id="wpTxt" spellcheck="false" aria-label="Texto para o WhatsApp"></textarea></div><p class="sub" style="margin:0">Dá para editar o texto antes de copiar, por exemplo para incluir os técnicos. Os asteriscos deixam o texto em negrito no WhatsApp.</p>'
@@ -491,9 +492,6 @@ VIEWS.agenda=function(v){
     c.innerHTML='<div class="ch"><h4>'+ic("cake",15)+' Aniversários de '+MES[m].toLowerCase()+'</h4><span class="pill go">'+l.length+'</span></div><ul class="bdl">'+l.map(function(f){var k=y+f.nasc.slice(4),hj=k===TD,ps=k<TD;
       return '<li data-day="'+k+'" tabindex="0" class="'+(hj?'hj':ps?'ps':'')+'"><span class="bdd"><b>'+f.nasc.slice(8)+'</b><small>'+MES3[m]+'</small></span><span class="grow"><b>'+f.nome+'</b><small>'+(f.cargo||"")+' · faz '+(y-+f.nasc.slice(0,4))+' anos'+(hj?' · é hoje!':'')+'</small></span></li>'}).join("")+'</ul>'}
   function load(){bdMes();
-  var mk=ymd(st.d).slice(0,7),ms=EVENTS.filter(function(e){return e.date.slice(0,7)===mk}),byDay={};ms.forEach(function(e){byDay[e.date]=(byDay[e.date]||0)+1});
-  var top=Object.keys(byDay).sort(function(a,b){return byDay[b]-byDay[a]})[0];
-  $("#mCount").textContent=ms.length;$("#mTop").textContent=top?dmy(top).slice(0,5)+" · "+byDay[top]:"—";
   var cands=[];for(var i=1;cands.length<7;i++){var x=addDays(TODAY,i);if(x.getDay()!==0&&x.getDay()!==6)cands.push(x)}
   cands.sort(function(a,b){return evOn(key(a)).length-evOn(key(b)).length||a-b});
   $("#best").innerHTML=cands.slice(0,3).map(function(x){var n=evOn(key(x)).length;return '<li><span class="sq">'+ic("agenda",13)+'</span><span class="grow"><b>'+DIA3[x.getDay()]+', '+dmy(key(x)).slice(0,5)+'</b><small>'+n+' visitas agendadas</small></span><button class="ghost" type="button" data-pick="'+key(x)+'">Agendar</button></li>'}).join("");
