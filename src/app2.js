@@ -358,13 +358,11 @@ document.addEventListener("click",function(e){
   if(e.target.closest("[data-ai]")){AI.open();return}
 });
 $("#tlogo").src=LOGO;syncVenc();refreshSide();initAI();
-$("#bell").addEventListener("click",function(){var a=avisos();toast(a.length?"Avisos: "+a.join(" · ")+".":"Nenhum aviso no momento.")});
 var _sv=null;function persist(){clearTimeout(_sv);_sv=setTimeout(function(){dbSave();refreshSide()},250)}
 ["click","change","drop","focusout","keydown"].forEach(function(ev){document.addEventListener(ev,persist)});
 window.addEventListener("pagehide",function(){dbSave(true)});document.addEventListener("visibilitychange",function(){if(document.hidden)dbSave()});
 $("#burger").addEventListener("click",function(){$("#app").classList.add("nav-open")});
 $("#scrim").addEventListener("click",function(){$("#app").classList.remove("nav-open")});
-$("#gSearch").addEventListener("keydown",function(e){if(e.key==="Enter"&&this.value.trim()){var q=norm(this.value.trim()),c=CLIENTES.find(function(x){return norm(x.nome+" "+x.razao+" "+x.doc).indexOf(q)>=0});if(c){CLI_SEL=c.id;CLI_OPEN=true;location.hash="#cli";if(VIEWS.cli.show)VIEWS.cli.show()}else toast("Nenhum cliente encontrado para essa busca.")}});
 window.addEventListener("hashchange",function(){go(location.hash.slice(1))});
 window.addEventListener("resize",function(){var on=$(".view.on");if(on&&VIEWS[on.id.slice(2)]&&VIEWS[on.id.slice(2)].show)VIEWS[on.id.slice(2)].show()});
 go(location.hash.slice(1)||"dash");
