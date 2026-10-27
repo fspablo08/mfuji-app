@@ -413,7 +413,7 @@ VIEWS.agenda=function(v){
   function amanha(){var a=addDays(TODAY,1);if(a.getDay()===0)a=addDays(a,1);return ymd(a)}
   var HRS=[7,8,9,10,11,12,13,14,15,16,17];
   function dateRow(d,h){return '<div class="drow"><input type="date" aria-label="Data" value="'+(d||"")+'"><select aria-label="Horário">'+HRS.map(function(x){return '<option value="'+x+'"'+(x===(h||8)?' selected':'')+'>'+hh(x)+'</option>'}).join("")+'</select><button class="dots" type="button" data-rmd aria-label="Remover data">×</button></div>'}
-  v.innerHTML='<div class="grid"><div class="card c9" id="calCard"><div class="cal-h"><div class="nav2"><button type="button" id="cPrev" aria-label="Anterior">‹</button><button type="button" id="cNext" aria-label="Próximo">›</button></div><h4 id="cTitle"></h4><button class="ghost" type="button" id="cToday">Hoje</button><span style="flex:1"></span><button class="ghost wpb" type="button" id="cWpp">'+ic("clock",13)+' Horários de amanhã</button><button class="cta" type="button" id="cNew">'+ic("plus",13)+'Novo agendamento</button></div>'
+  v.innerHTML='<div class="grid"><div class="card c9" id="calCard"><div class="cal-h"><div class="nav2"><button type="button" id="cPrev" aria-label="Anterior">‹</button><button type="button" id="cNext" aria-label="Próximo">›</button></div><h4 id="cTitle"></h4><button class="ghost" type="button" id="cToday">Hoje</button><div class="agsrch"><label class="agq">'+ic("search",13)+'<input id="agQ" type="search" placeholder="Buscar cliente na agenda" aria-label="Buscar agendamentos por cliente" autocomplete="off"></label><div class="agres" id="agRes" hidden></div></div><button class="ghost wpb" type="button" id="cWpp">'+ic("clock",13)+' Horários de amanhã</button><button class="cta" type="button" id="cNew">'+ic("plus",13)+'Novo agendamento</button></div>'
    +'<div class="cal-2"><div class="seg" role="group" aria-label="Visualização"><button type="button" data-cv="dia">Dia</button><button type="button" data-cv="semana">Semana</button><button type="button" data-cv="mes">Mês</button><button type="button" data-cv="ano">Ano</button></div><div class="leg2">'+SFAM.map(function(f){return '<span><i style="background:'+f[1]+'"></i>'+f[0]+'</span>'}).join("")+'<span class="lg-bd">'+ic("cake",11)+'Aniversário da equipe</span><span class="lg-rc">'+ic("rec",11)+'A receber</span><span><i style="background:repeating-linear-gradient(135deg,#FFF 0 3px,#DDD 3px 6px);border:1px solid #DDD"></i>Domingo · sem atendimento</span></div></div><div id="cBody"></div></div>'
    +'<div class="c3 agside"><div class="card" id="sdCard"></div><div class="card bdcard" id="bdCard" hidden></div><div class="card bestcard"><div class="ch"><h4>Melhores datas</h4><span class="pill in">Assistente</span></div><p class="txt">Dias úteis com menos visitas nos próximos dias:</p><ul class="ls" id="best"></ul></div></div></div>'
    +'<div class="modal" id="wpModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="wpT"><div class="ch" style="margin:0"><h3 id="wpT">Horários de amanhã</h3><span class="pill ok">Para o grupo do WhatsApp</span></div>'
@@ -506,10 +506,25 @@ VIEWS.agenda=function(v){
     $("#wpTxt").value=t.replace(/[ ]+$/gm,function(m){return m}) ;
   }
   v.addEventListener("change",function(e){if(e.target.id==="wpD"||e.target.id==="wpS")wpFill()});
+  /* busca de agendamentos pelo nome do cliente (ou serviço): próximos primeiro, depois os passados */
+  function agBusca(){
+    var q=norm($("#agQ").value.trim()),box=$("#agRes");if(!q){box.hidden=true;box.innerHTML="";return}
+    var l=EVENTS.filter(function(e){return norm(e.cli+" "+(e.svs||[e.s]).join(" ")).indexOf(q)>=0}),
+      fut=l.filter(function(e){return e.date>=TD}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),
+      pas=l.filter(function(e){return e.date<TD}).sort(function(a,b){return a.date>b.date?-1:a.date<b.date?1:a.h-b.h});
+    function li(e){var dt=new Date(e.date+"T12:00");return '<li data-agev="'+e.id+'" tabindex="0"><span class="tm">'+dmy(e.date)+'<small>'+DIA3[dt.getDay()]+' · '+hh(e.h)+'</small></span><span class="bar-t" style="background:'+svCor(e.s)+'"></span><span class="grow"><b>'+esc(e.cli)+'</b><small>'+svShort(e)+'</small></span></li>'}
+    box.innerHTML=l.length?(fut.length?'<div class="sub">Próximos · '+fut.length+'</div><ul class="ls">'+fut.slice(0,30).map(li).join("")+'</ul>':'')+(pas.length?'<div class="sub">Já realizados · '+pas.length+'</div><ul class="ls">'+pas.slice(0,30).map(li).join("")+'</ul>':''):'<p class="mut">Nenhum agendamento encontrado.</p>';
+    box.hidden=false}
+  function agIr(id){var e=EVENTS.find(function(x){return x.id===id});if(!e)return;var p=e.date.split("-");st.d=new Date(+p[0],+p[1]-1,+p[2]);if(st.view==="ano")st.view="mes";st.ev=id;$("#agRes").hidden=true;render();if(window.innerWidth<1100)$("#sdCard").scrollIntoView({behavior:"smooth",block:"nearest"})}
+  v.addEventListener("input",function(e){if(e.target.id==="agQ")agBusca()});
+  v.addEventListener("focusin",function(e){if(e.target.id==="agQ"&&e.target.value.trim())agBusca()});
+  document.addEventListener("click",function(e){if(!e.target.closest(".agsrch")){var b=$("#agRes");if(b)b.hidden=true}});
   function openNew(d){$("#evCli").value="";$$(".svpick input",v).forEach(function(x){x.checked=false});$("#evDates").innerHTML=dateRow(d||amanha(),8);$("#evObs").value="";$("#evDur").value="2";setGar(3);$("#evModal").hidden=false;$("#evCli").focus()}
   bindPick($("#evCli"));
   v.addEventListener("click",function(e){
     var t=e.target;
+    var ag=t.closest("[data-agev]");if(ag){agIr(ag.dataset.agev);return}
+    if(t.closest(".agsrch"))return;
     if(t.closest("[data-cv]")){st.view=t.closest("[data-cv]").dataset.cv;render();return}
     if(t.closest("#cPrev")||t.closest("#cNext")){var dir=t.closest("#cNext")?1:-1,d=st.d;
       if(st.view==="mes")st.d=new Date(d.getFullYear(),d.getMonth()+dir,1);else if(st.view==="semana")st.d=addDays(d,7*dir);else if(st.view==="dia")st.d=addDays(d,dir);else st.d=new Date(d.getFullYear()+dir,0,1);render();return}
@@ -543,7 +558,8 @@ VIEWS.agenda=function(v){
       $("#evModal").hidden=true;var p2=first.date.split("-");st.d=new Date(+p2[0],+p2[1]-1,+p2[2]);st.ev=first.id;render();
       toast(ds.length>1?ds.length+" datas agendadas para "+cli+".":"Agendado para "+dmy(first.date)+".");}
   });
-  v.addEventListener("keydown",function(e){if(e.key==="Enter"){var rb=e.target.closest(".recbar");if(rb){REC_SEL=+rb.dataset.rec;location.hash="#rec";return}var li=e.target.closest(".sdl [data-ev]");if(li)card(li.dataset.ev)}});
+  v.addEventListener("keydown",function(e){if(e.target.id==="agQ"){if(e.key==="Escape"){e.target.value="";agBusca()}else if(e.key==="Enter"){var f1=$("#agRes [data-agev]");if(f1)agIr(f1.dataset.agev)}return}
+    if(e.key==="Enter"){var ag2=e.target.closest("[data-agev]");if(ag2){agIr(ag2.dataset.agev);return}var rb=e.target.closest(".recbar");if(rb){REC_SEL=+rb.dataset.rec;location.hash="#rec";return}var li=e.target.closest(".sdl [data-ev]");if(li)card(li.dataset.ev)}});
   VIEWS.agenda.show=function(){render()};
   render();
 };
