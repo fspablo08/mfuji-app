@@ -6,6 +6,7 @@ function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAl
 function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem("mf-"+k));localStorage.setItem("mf-"+k,JSON.stringify(v))}catch(e){return null}}
 function toast(msg){var t=$("#toast");t.textContent=msg;t.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove("on")},3200)}
 var I={
+ edit:'<path d="M10.5 2.5l3 3L6 13H3v-3z"/><path d="M9 4l3 3"/>',
  cake:'<path d="M2.5 14h11M3.5 14V9.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1V14M3.5 11.2c1.1.9 2.1.9 3.1 0 1 .9 2 .9 2.9 0 1 .9 2 .9 3 0M8 8.5V6.3M8 4.2c-.7-.6-.7-1.4 0-2.2.7.8.7 1.6 0 2.2z"/>',
  dash:'<path d="M2 7.2L8 2l6 5.2V14H10v-4H6v4H2z" fill="currentColor" stroke="none"/>',
  agenda:'<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3"/>',
@@ -76,7 +77,7 @@ function go(v){
 var AI={
  sug:{
   dash:[["Por onde eu começo?","Comece cadastrando os <b>clientes</b> (digite o CNPJ e os dados vêm da Receita) e a <b>equipe</b> em Funcionários. Depois é só lançar os serviços na <b>Agenda</b>."]],
-  agenda:[["Como cadastro uma visita?","Clique em <b>+ Novo agendamento</b>, digite o cliente, marque os serviços, adicione uma ou mais datas e escolha a garantia."],["Como mando os horários para a equipe?","Clique em <b>Horários de amanhã</b>, confira o texto e use <b>Copiar</b> para colar no grupo do WhatsApp."]],
+  agenda:[["Como cadastro uma visita?","Clique em <b>+ Novo agendamento</b>, digite o cliente, marque os serviços, adicione uma ou mais datas e escolha a garantia."],["Como mudo um agendamento?","Clique na visita no calendário ou na lista do dia e depois em <b>Editar</b>. Dá para trocar a data, o horário, acrescentar serviços ou datas e mudar a garantia."],["Como mando os horários para a equipe?","Clique em <b>Horários de amanhã</b>, confira o texto e use <b>Copiar</b> para colar no grupo do WhatsApp."]],
   assist:[["O que você vai saber da Monte Fuji?","Quando você me enviar a tabela de preços, os procedimentos de cada serviço, as regras de garantia e modelos de resposta, eu passo a usar essas informações nas sugestões."]],
   notas:[["Como uso as anotações?","Clique em <b>+ Adicionar cartão</b> na coluna desejada, dê dois cliques no título para editar e arraste entre as colunas. O botão de data define o prazo."]],
   os:[["Como gero uma OS?","Escolha o cliente, descreva o serviço e clique em <b>Gerar OS e salvar no Drive</b>. O termo de execução vai direto para a pasta do cliente no Google Drive."]],
@@ -117,17 +118,16 @@ function bindPick(inp,onPick){
   function close(){ul.hidden=true;inp.setAttribute("aria-expanded","false");act=-1}
   function choose(i){var it=items[i];if(!it)return;if(it.novo){close();openCliModal(inp.value.trim(),function(c){inp.value=c.nome;onPick&&onPick(c)});return}inp.value=it.c.nome;close();onPick&&onPick(it.c)}
   function draw(){
-    var q=norm(inp.value.trim());
+    var q=norm(inp.value.trim());if(!q){close();return}
     var qd=digits(q);items=CLIENTES.filter(function(c){return !q||norm(c.nome+" "+c.razao+" "+c.doc).indexOf(q)>=0||(qd.length>=4&&digits(c.doc).indexOf(qd)>=0)}).slice(0,6).map(function(c){return {c:c}});
     items.push({novo:true});
     ul.innerHTML=items.map(function(it,i){return it.novo?'<li role="option" class="nv'+(i===act?' on':'')+'" data-i="'+i+'">'+ic("plus",12)+(digits(inp.value).length===14?' Buscar CNPJ na Receita e cadastrar':' Cadastrar novo cliente'+(inp.value.trim()?' “'+inp.value.trim().replace(/</g,"&lt;")+'”':''))+'</li>':'<li role="option" class="'+(i===act?'on':'')+'" data-i="'+i+'"><b>'+it.c.nome+'</b><small>'+it.c.doc+' · '+it.c.end.split("·").pop().trim()+'</small></li>'}).join("");
     ul.hidden=false;inp.setAttribute("aria-expanded","true");
   }
   inp.addEventListener("input",function(){act=-1;draw()});
-  inp.addEventListener("focus",draw);
   inp.addEventListener("blur",function(){setTimeout(close,120)});
   inp.addEventListener("keydown",function(e){
-    if(ul.hidden&&e.key==="ArrowDown"){draw();return}
+    if(ul.hidden&&e.key==="ArrowDown"){if(inp.value.trim())draw();return}
     if(e.key==="ArrowDown"){e.preventDefault();act=Math.min(items.length-1,act+1);draw()}
     else if(e.key==="ArrowUp"){e.preventDefault();act=Math.max(0,act-1);draw()}
     else if(e.key==="Enter"&&!ul.hidden&&act>=0){e.preventDefault();choose(act)}
@@ -482,7 +482,7 @@ VIEWS.agenda=function(v){
      +(c?'<div><small>Contato</small><span>'+c.contato+'</span></div><div><small>Telefone</small><span>'+c.tel+'</span></div>':'')+'</div>'
      +(grp.length>1?'<div class="sub">Datas deste agendamento</div><ul class="dlist">'+grp.map(function(x){return '<li'+(x.id===e.id?' class="on"':'')+' data-ev="'+x.id+'">'+DIA3[new Date(x.date+"T12:00").getDay()]+', '+dmy(x.date)+' · '+hh(x.h)+'</li>'}).join("")+'</ul>':'')
      +(e.obs?'<div class="sub">Observações</div><p class="txt">'+e.obs+'</p>':'')
-     +'<div class="acts"><button class="ghost" type="button" data-com>'+ic("down",13)+' Baixar comunicado</button>'+(c?'<a class="ghost" href="#cli" data-cli="'+c.id+'">Ver cliente</a>':'')+'<button class="ghost" type="button" data-del>Excluir</button></div></div>';
+     +'<div class="acts"><button class="cta" type="button" data-edit>'+ic("edit",13)+' Editar</button><button class="ghost" type="button" data-com>'+ic("down",13)+' Baixar comunicado</button>'+(c?'<a class="ghost" href="#cli" data-cli="'+c.id+'">Ver cliente</a>':'')+'<button class="ghost" type="button" data-del>Excluir</button></div></div>';
     mark();
   }
   /* aniversários da equipe no mês em exibição */
@@ -519,7 +519,16 @@ VIEWS.agenda=function(v){
   v.addEventListener("input",function(e){if(e.target.id==="agQ")agBusca()});
   v.addEventListener("focusin",function(e){if(e.target.id==="agQ"&&e.target.value.trim())agBusca()});
   document.addEventListener("click",function(e){if(!e.target.closest(".agsrch")){var b=$("#agRes");if(b)b.hidden=true}});
-  function openNew(d){$("#evCli").value="";$$(".svpick input",v).forEach(function(x){x.checked=false});$("#evDates").innerHTML=dateRow(d||amanha(),8);$("#evObs").value="";$("#evDur").value="2";setGar(3);$("#evModal").hidden=false;$("#evCli").focus()}
+  function modo(ed){st.edit=ed;$("#evT").textContent=ed?"Editar agendamento":"Novo agendamento";$("#evSave").textContent=ed?"Salvar alterações":"Salvar na agenda"}
+  function grpOf(e){return e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e]}
+  /* edição: mesma janela do novo agendamento, já preenchida com todas as datas do agendamento */
+  function openEdit(id){var e=EVENTS.find(function(x){return x.id===id});if(!e)return;modo(id);
+    var g=grpOf(e).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),svs=e.svs||[e.s];
+    $("#evCli").value=e.cli;$$(".svpick input",v).forEach(function(x){x.checked=svs.indexOf(x.value)>=0});
+    $("#evDates").innerHTML=g.map(function(x){return dateRow(x.date,x.h)}).join("");$("#evObs").value=e.obs||"";
+    var du=$("#evDur");du.value=String(e.dur);if(du.value!==String(e.dur)){du.insertAdjacentHTML("beforeend",'<option value="'+e.dur+'">'+e.dur+' horas</option>');du.value=String(e.dur)}
+    setGar(e.gar||0);$("#evModal").hidden=false}
+  function openNew(d){modo(null);$("#evCli").value="";$$(".svpick input",v).forEach(function(x){x.checked=false});$("#evDates").innerHTML=dateRow(d||amanha(),8);$("#evObs").value="";$("#evDur").value="2";setGar(3);$("#evModal").hidden=false;$("#evCli").focus()}
   bindPick($("#evCli"));
   v.addEventListener("click",function(e){
     var t=e.target;
@@ -537,6 +546,7 @@ VIEWS.agenda=function(v){
     var nd=t.closest("[data-newon]");if(nd){openNew(nd.dataset.newon);return}
     var day=t.closest("[data-day]");if(day){if(e.detail===2||day.classList.contains("hd")){var p=day.dataset.day.split("-");st.d=new Date(+p[0],+p[1]-1,+p[2]);st.view="dia";st.sel=day.dataset.day;st.ev=null;render()}else side(day.dataset.day);return}
     var ym=t.closest(".ym");if(ym){st.d=new Date(st.d.getFullYear(),+ym.dataset.m,1);st.view="mes";render();return}
+    if(t.closest("[data-edit]")){openEdit(st.ev);return}
     if(t.closest("[data-com]")){var evc=EVENTS.find(function(x){return x.id===st.ev});if(evc)openComunicado(evc);return}
     if(t.closest("#cNew")){openNew();return}
     if(t.closest("#cWpp")){$("#wpD").value=amanha();var hr=new Date().getHours();$("#wpS").value=hr<12?"Bom dia":hr<18?"Boa tarde":"Boa noite";wpFill();$("#wpModal").hidden=false;return}
@@ -553,10 +563,20 @@ VIEWS.agenda=function(v){
       if(!cli){toast("Informe o cliente.");$("#evCli").focus();return}
       if(!svs.length){toast("Marque pelo menos um serviço.");return}
       if(!ds.length){toast("Escolha pelo menos uma data.");return}
-      var grp="g"+Date.now(),first=null;
-      ds.sort(function(a,b){return a.d<b.d?-1:1}).forEach(function(x,i){var ne={id:grp+"-"+i,grp:grp,date:x.d,h:x.h,dur:+$("#evDur").value,s:svs[0],svs:svs,cli:cli,gar:st.gar,obs:$("#evObs").value.trim()};EVENTS.push(ne);if(!first)first=ne});
-      $("#evModal").hidden=true;var p2=first.date.split("-");st.d=new Date(+p2[0],+p2[1]-1,+p2[2]);st.ev=first.id;render();
-      toast(ds.length>1?ds.length+" datas agendadas para "+cli+".":"Agendado para "+dmy(first.date)+".");}
+      ds.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:a.h-b.h});
+      var dur=+$("#evDur").value,obs=$("#evObs").value.trim(),first=null,ed=st.edit&&EVENTS.find(function(x){return x.id===st.edit});
+      if(ed){
+        /* reaproveita os registros que já existiam (mesmo código no banco) e só cria ou apaga as datas que mudaram de quantidade */
+        var old=grpOf(ed).sort(function(a,b){return a.id===ed.id?-1:b.id===ed.id?1:a.date<b.date?-1:1}),grp=ed.grp||("g"+Date.now()),stamp=Date.now().toString(36);
+        ds.forEach(function(x,i){var o=old[i];if(!o){o={id:grp+"-"+stamp+i};EVENTS.push(o)}o.grp=grp;o.date=x.d;o.h=x.h;o.dur=dur;o.s=svs[0];o.svs=svs;o.cli=cli;o.gar=st.gar;o.obs=obs;if(!first||x.d<first.date)first=o});
+        old.slice(ds.length).forEach(function(o){EVENTS.splice(EVENTS.indexOf(o),1)});
+        first=old[0]&&EVENTS.indexOf(old[0])>=0?old[0]:first;
+      }else{
+        var grp="g"+Date.now();
+        ds.forEach(function(x,i){var ne={id:grp+"-"+i,grp:grp,date:x.d,h:x.h,dur:dur,s:svs[0],svs:svs,cli:cli,gar:st.gar,obs:obs};EVENTS.push(ne);if(!first)first=ne});
+      }
+      $("#evModal").hidden=true;modo(null);var p2=first.date.split("-");st.d=new Date(+p2[0],+p2[1]-1,+p2[2]);st.ev=first.id;render();
+      toast(ed?"Agendamento de "+cli+" atualizado.":ds.length>1?ds.length+" datas agendadas para "+cli+".":"Agendado para "+dmy(first.date)+".");}
   });
   v.addEventListener("keydown",function(e){if(e.target.id==="agQ"){if(e.key==="Escape"){e.target.value="";agBusca()}else if(e.key==="Enter"){var f1=$("#agRes [data-agev]");if(f1)agIr(f1.dataset.agev)}return}
     if(e.key==="Enter"){var ag2=e.target.closest("[data-agev]");if(ag2){agIr(ag2.dataset.agev);return}var rb=e.target.closest(".recbar");if(rb){REC_SEL=+rb.dataset.rec;location.hash="#rec";return}var li=e.target.closest(".sdl [data-ev]");if(li)card(li.dataset.ev)}});
