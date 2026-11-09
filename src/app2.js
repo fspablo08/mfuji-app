@@ -173,7 +173,7 @@ VIEWS.rec=function(v){
   function pass(r){var s=recSt(r)[1];if(st.f==="Todos")return true;if(st.f==="Em aberto")return !r.pago;if(st.f==="Vencidos")return s==="Vencido";if(st.f==="Recebidos")return !!r.pago;return s===st.f}
   function aberto(){return RECEBER.filter(function(r){return !r.pago})}
   v.innerHTML='<div class="grid">'
-  +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Total a receber</span><button class="plus" type="button" data-rnew aria-label="Novo lançamento">+</button></div><b class="num" id="rTot"></b><p class="hs" id="rTotS"></p><div class="ha"><button class="w" type="button" data-rnew style="white-space:nowrap">+ Novo</button></div></div>'
+  +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Total a receber</span><button class="plus" type="button" data-rnew aria-label="Novo lançamento">+</button></div><div class="hv"><b class="num" id="rTot"></b>'+totOlho()+'</div><p class="hs" id="rTotS"></p><div class="ha"><button class="w" type="button" data-rnew style="white-space:nowrap">+ Novo</button></div></div>'
   +'<div class="card c9"><div class="ch"><h4>Clientes avulsos</h4><span class="sub">Serviços sem contrato, cobrados um a um</span></div><div class="kp" style="--n:4" id="rKp"></div></div>'
   +'<div class="split c12"><div class="card"><div class="ch"><h4>Cobranças</h4><button class="cta" type="button" data-rnew>'+ic("plus",13)+'Novo lançamento</button></div>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ ou nota fiscal" aria-label="Buscar cobranças"></div></div>'
@@ -198,7 +198,7 @@ VIEWS.rec=function(v){
   function kp(){
     var ab=aberto(),tot=ab.reduce(function(s,r){return s+r.valor},0),venc=ab.filter(function(r){return recSt(r)[1]==="Vencido"}),sem=ab.filter(function(r){return !r.cob}),sete=ab.filter(function(r){return r.venc>=TD&&r.venc<=ymd(addDays(TODAY,7))}),rec=RECEBER.filter(function(r){return r.pago&&r.pago.slice(0,7)===TD.slice(0,7)});
     function sum(a){return brl(a.reduce(function(s,r){return s+r.valor},0))}
-    $("#rTot").innerHTML=brl(tot).replace("R$ ","R$ ")+'<small>BRL</small>';$("#rTotS").textContent=ab.length+" cobranças em aberto · "+venc.length+" vencidas";
+    $("#rTot").innerHTML=totVal(brl(tot).replace("R$ ","R$ ")+'<small>BRL</small>');$("#rTotS").textContent=ab.length+" cobranças em aberto · "+venc.length+" vencidas";
     $("#rKp").innerHTML='<div><span class="sq" style="background:var(--erro-50);border-color:#F1C9C6;color:var(--erro)">'+ic("clock",14)+'</span><span class="t">Vencido</span><b class="num">'+sum(venc)+'</b><span class="pill er">'+venc.length+' cliente'+(venc.length===1?'':'s')+'</span></div>'
      +'<div><span class="sq">'+ic("agenda",14)+'</span><span class="t">Vence em 7 dias</span><b class="num">'+sum(sete)+'</b><span class="pill in">'+sete.length+' cobranças</span></div>'
      +'<div><span class="sq">'+ic("mail",14)+'</span><span class="t">Cobrança não enviada</span><b class="num">'+sem.length+'</b><span class="pill al">'+(sem.filter(function(r){return !r.nf}).length)+' sem nota fiscal</span></div>'
@@ -370,6 +370,7 @@ VIEWS.cfg=function(v){
 
 /* ===== início ===== */
 document.addEventListener("click",function(e){
+  if(e.target.closest("[data-olho]")){totAlterna();return}
   var g=e.target.closest("[data-go]");if(g){location.hash="#"+g.dataset.go;return}
   var t=e.target.closest("[data-t]");if(t){toast(t.dataset.t);return}
   if(e.target.closest("[data-ai]")){AI.open();return}
