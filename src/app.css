@@ -699,3 +699,12 @@ button.ev.on{box-shadow:0 0 0 1.5px var(--c)}
 .cta:disabled{opacity:.45;cursor:default;box-shadow:none}
 .imp .tb td.num{white-space:nowrap}
 .imp .tb td:last-child{overflow-wrap:anywhere;min-width:160px}
+
+.rchk{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px}
+.rchk input{accent-color:var(--ok);width:16px;height:16px;flex:none;margin:0;cursor:pointer}
+.rchk span{display:flex;flex-direction:column}
+#rTb td .rchk+.pill{margin-left:8px}
+.rchkf .rchk{font-size:13px;color:var(--t1);border:1px solid var(--linha);border-radius:10px;padding:10px 12px;width:100%;box-sizing:border-box}
+.robs{background:var(--alerta-50);border:1px solid #F1DFAE;border-left:4px solid var(--alerta);border-radius:12px;padding:10px 14px;margin:10px 0}
+.robs b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--alerta-700);margin-bottom:3px}
+.robs p{margin:0;font-size:14px;color:var(--t1);white-space:pre-wrap}
