@@ -5,7 +5,15 @@ function $(s,r){return (r||document).querySelector(s)}
 function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
 function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem("mf-"+k));localStorage.setItem("mf-"+k,JSON.stringify(v))}catch(e){return null}}
 function toast(msg){var t=$("#toast");t.textContent=msg;t.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove("on")},3200)}
+ /* olho que oculta o total a receber (escolha guardada só neste navegador) */
+function totOculto(){return !!store("ocultaTot")}
+document.documentElement.classList.toggle("oculta-tot",totOculto());
+function totVal(v){return '<span class="totv">'+v+'</span><span class="totm" aria-label="Valor oculto">R$ ••••••</span>'}
+function totOlho(){var o=totOculto();return '<button class="olho" type="button" data-olho aria-pressed="'+o+'" aria-label="'+(o?'Mostrar valor':'Ocultar valor')+'" title="'+(o?'Mostrar valor':'Ocultar valor')+'"><span class="oa">'+ic("eye",16)+'</span><span class="ob">'+ic("eyeOff",16)+'</span></button>'}
+function totAlterna(){var o=!totOculto();store("ocultaTot",o);document.documentElement.classList.toggle("oculta-tot",o);$$("[data-olho]").forEach(function(b){b.setAttribute("aria-pressed",o);b.setAttribute("aria-label",o?"Mostrar valor":"Ocultar valor");b.title=o?"Mostrar valor":"Ocultar valor"})}
 var I={
+ eye:'<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>',
+ eyeOff:'<path d="M6.6 3.7A6.6 6.6 0 0 1 8 3.5C12 3.5 14.5 8 14.5 8a11 11 0 0 1-1.7 2.3M10.1 10.2A2.9 2.9 0 0 1 8 11a3 3 0 0 1-3-3 2.9 2.9 0 0 1 .8-2.1M4.1 4.9C2.5 6.1 1.5 8 1.5 8S4 12.5 8 12.5a6.4 6.4 0 0 0 3.2-.9M2 2l12 12"/>',
  edit:'<path d="M10.5 2.5l3 3L6 13H3v-3z"/><path d="M9 4l3 3"/>',
  cake:'<path d="M2.5 14h11M3.5 14V9.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1V14M3.5 11.2c1.1.9 2.1.9 3.1 0 1 .9 2 .9 2.9 0 1 .9 2 .9 3 0M8 8.5V6.3M8 4.2c-.7-.6-.7-1.4 0-2.2.7.8.7 1.6 0 2.2z"/>',
  dash:'<path d="M2 7.2L8 2l6 5.2V14H10v-4H6v4H2z" fill="currentColor" stroke="none"/>',
@@ -382,7 +390,7 @@ VIEWS.dash=function(v){
   var passos=[[CLIENTES.length>0,"Cadastrar os clientes","cli"],[FUNC.length>0,"Cadastrar a equipe","func"],[EVENTS.length>0,"Lançar os serviços na agenda","agenda"],[RECEBER.length>0,"Lançar as cobranças avulsas","rec"]],feitos=passos.filter(function(p){return p[0]}).length;
   function vazio(t){return '<li class="mut">'+t+'</li>'}
   v.innerHTML='<div class="grid">'
-  +'<div class="card hero c3"><div class="ring" aria-hidden="true"></div><div class="hh"><span>A receber em aberto</span><button class="plus" type="button" aria-label="Novo lançamento" data-go="rec">+</button></div><b class="num">'+brl(tot)+'</b><p class="hs">'+(ab.length?ab.length+' cobrança'+(ab.length>1?'s':'')+(venc.length?' · '+venc.length+' vencida'+(venc.length>1?'s':''):''):'Nenhuma cobrança em aberto')+'</p><div class="ha"><button class="w" type="button" data-go="rec">Ver cobranças</button></div></div>'
+  +'<div class="card hero c3"><div class="ring" aria-hidden="true"></div><div class="hh"><span>A receber em aberto</span><button class="plus" type="button" aria-label="Novo lançamento" data-go="rec">+</button></div><div class="hv"><b class="num">'+totVal(brl(tot))+'</b>'+totOlho()+'</div><p class="hs">'+(ab.length?ab.length+' cobrança'+(ab.length>1?'s':'')+(venc.length?' · '+venc.length+' vencida'+(venc.length>1?'s':''):''):'Nenhuma cobrança em aberto')+'</p><div class="ha"><button class="w" type="button" data-go="rec">Ver cobranças</button></div></div>'
   +'<div class="card c9"><div class="ch"><h4>Resumo</h4><span class="sub">'+DIA_EXT[TODAY.getDay()].replace(/^./,function(m){return m.toUpperCase()})+', '+dmy(TD)+'</span></div><div class="kp" style="--n:4">'
    +'<div><span class="sq">'+ic("agenda",14)+'</span><span class="t">Visitas hoje</span><b class="num">'+hoje.length+'</b><span class="pill in">'+sem+' na semana</span></div>'
    +'<div><span class="sq">'+ic("rec",14)+'</span><span class="t">A receber em 7 dias</span><b class="num">'+brl(sete.reduce(function(s,r){return s+r.valor},0))+'</b><span class="pill ok">'+sete.length+' cobrança'+(sete.length===1?'':'s')+'</span></div>'
