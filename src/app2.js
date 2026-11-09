@@ -166,7 +166,7 @@ VIEWS.cli=function(v){
 };
 
 /* ===== A RECEBER ===== */
-var REC_SEL=0;
+var REC_SEL=0,REC_EDIT=0;
 VIEWS.rec=function(v){
   var st={f:"Em aberto",q:""};
   var FIL=["Em aberto","Vencidos","Cobrança pendente","NF a emitir","Recebidos","Todos"];
@@ -192,6 +192,7 @@ VIEWS.rec=function(v){
    +'<div class="fld"><label for="rNf">Nº da nota fiscal</label><input id="rNf" inputmode="numeric" placeholder="Deixe vazio se ainda não emitiu"></div><div class="fld"><label for="rNfD">Emissão da nota</label><input id="rNfD" type="date"></div>'
    +'<div class="fld"><label for="rForma">Forma de pagamento</label><select id="rForma"><option>Boleto</option><option>Pix</option><option>Transferência</option><option>Dinheiro</option></select></div><div class="fld"><label for="rBanco">Banco</label><select id="rBanco"><option value="">Não definido</option><option>Conta Azul</option><option>Bradesco</option><option>Sicredi</option><option>Banco do Brasil</option><option>Conecta</option></select></div>'
    +'<div class="fld"><label for="rCob">Cobrança enviada em</label><input id="rCob" type="date"></div><div class="fld"><label for="rCanal">Enviada por</label><select id="rCanal"><option value="">Ainda não enviada</option><option>E-mail</option><option>WhatsApp</option><option>Correio</option><option>Em mãos</option></select></div>'
+   +'<div class="fld" id="rPagoF" hidden><label for="rPago">Recebido em</label><input id="rPago" type="date"></div>'
    +'<div class="fld full"><label for="rObs">Observações</label><textarea id="rObs" placeholder="Ex.: pagar só após o dia 15"></textarea></div></div>'
    +'<div class="acts"><button class="ghost" type="button" data-rx>Cancelar</button><button class="cta rq" type="button" id="rSave">Salvar lançamento</button></div></div></div>';
   function kp(){
@@ -226,7 +227,7 @@ VIEWS.rec=function(v){
     +(!r.pago&&!r.nf?'<div class="nfrow"><div class="fld"><label for="dNf">Nº da nota fiscal</label><input id="dNf" inputmode="numeric" placeholder="Ex.: 2390"></div><button class="cta rq" type="button" data-dnf>Registrar nota</button></div>':'')
     +'<div class="ch"><h4>Histórico da cobrança</h4></div><ul class="tl">'+tl.map(function(t){return '<li><span class="pt" style="border-color:'+({ok:"var(--ok)",in:"var(--hidra)",al:"var(--alerta)",er:"var(--erro)",ne:"#CAC9C5"}[t[2]])+'"></span><span><b>'+t[1]+'</b></span><span class="sub num">'+(t[0]?dmy(t[0]):'')+'</span></li>'}).join("")+'</ul>'
     +(r.obs?'<p class="txt"><b style="font-weight:600">Observação:</b> '+r.obs+'</p>':'')
-    +(!r.pago?'<div class="acts" style="justify-content:flex-start;flex-wrap:wrap">'+(r.nf?(r.cob?'<button class="ghost" type="button" data-dremind>'+ic("mail",13)+' Enviar lembrete</button>':'<button class="cta" type="button" data-dcob>'+ic("mail",13)+' Registrar envio da cobrança</button>'):'')+'<button class="cta rq" type="button" data-dpago>'+ic("up",13)+' Marcar como recebido</button></div>':'')
+    +'<div class="acts" style="justify-content:flex-start;flex-wrap:wrap"><button class="ghost" type="button" data-redit>'+ic("edit",13)+' Editar</button>'+(!r.pago?(r.nf?(r.cob?'<button class="ghost" type="button" data-dremind>'+ic("mail",13)+' Enviar lembrete</button>':'<button class="cta" type="button" data-dcob>'+ic("mail",13)+' Registrar envio da cobrança</button>'):'')+'<button class="cta rq" type="button" data-dpago>'+ic("up",13)+' Marcar como recebido</button>':'')+'</div>'
     +(late?aiBox('Está há <b>'+late+' dias</b> em atraso. Posso escrever uma mensagem de cobrança gentil para '+r.contato.split(" (")[0]+' com o boleto atualizado.','Escrever cobrança','data-dremind'):'');
   }
   function all(){kp();table();det()}
@@ -244,13 +245,24 @@ VIEWS.rec=function(v){
   v.addEventListener("click",function(e){
     var r0=e.target.closest("#rTb tr.cl");if(r0){REC_SEL=+r0.dataset.id;table();det();if(window.innerWidth<1100)$("#rDet").scrollIntoView({behavior:"smooth"});return}
     var f=e.target.closest("#rFil button");if(f){st.f=f.textContent;table();return}
-    if(e.target.closest("[data-rnew]")){$$("#rModal input,#rModal textarea",v).forEach(function(i){i.value=""});$("#rVenc").value=ymd(addDays(TODAY,10));$("#rCanal").value="";$("#rBanco").value="";$("#rSt").innerHTML='<span class="mut">Se o cliente já tiver cobranças aqui, os dados dele são reaproveitados.</span>';$("#rModal").hidden=false;$("#rDoc").focus();return}
+    if(e.target.closest("[data-rnew]")){REC_EDIT=0;$("#rmT").textContent="Novo lançamento a receber";$("#rSave").textContent="Salvar lançamento";$("#rPagoF").hidden=true;$$("#rModal input,#rModal textarea",v).forEach(function(i){i.value=""});$("#rVenc").value=ymd(addDays(TODAY,10));$("#rCanal").value="";$("#rBanco").value="";$("#rSt").innerHTML='<span class="mut">Se o cliente já tiver cobranças aqui, os dados dele são reaproveitados.</span>';$("#rModal").hidden=false;$("#rDoc").focus();return}
+    var re=e.target.closest("[data-redit]");if(re){var x=RECEBER.find(function(y){return y.id===REC_SEL});if(!x)return;REC_EDIT=x.id;
+      $("#rmT").textContent="Editar lançamento";$("#rSave").textContent="Salvar alterações";
+      var sv=function(id,val){$(id).value=(val&&val!=="—")?val:""};
+      sv("#rDoc",x.doc);sv("#rNome",x.nome);sv("#rCon",x.contato);sv("#rTel",x.tel);sv("#rEm",x.email);sv("#rServ",x.serv==="Serviço avulso"?"":x.serv);$("#rVal").value=x.valor||"";sv("#rVenc",x.venc);sv("#rNf",x.nf);sv("#rNfD",x.nfData);
+      $("#rForma").value=x.forma||"Boleto";$("#rBanco").value=x.banco||"";sv("#rCob",x.cob);$("#rCanal").value=x.canal||"";sv("#rObs",x.obs);
+      $("#rPagoF").hidden=!x.pago;sv("#rPago",x.pago);
+      $("#rSt").innerHTML='<span class="mut">Altere o que precisar e clique em Salvar alterações.</span>';$("#rModal").hidden=false;$("#rNome").focus();return}
     if(e.target.closest("[data-rx]")||e.target===$("#rModal")){$("#rModal").hidden=true;return}
     if(e.target.closest("#rBusca")){fillFrom(digits($("#rDoc").value));return}
     if(e.target.closest("#rSave")){
       var nome=$("#rNome").value.trim(),val=+$("#rVal").value;
       if(!nome){toast("Informe o cliente.");$("#rNome").focus();return}if(!val){toast("Informe o valor.");$("#rVal").focus();return}if(!$("#rVenc").value){toast("Informe o vencimento.");return}
       var cob=$("#rCob").value,canal=$("#rCanal").value;if(cob&&!canal)canal="E-mail";if(canal&&!cob)cob=TD;
+      if(REC_EDIT){var o=RECEBER.find(function(y){return y.id===REC_EDIT});if(o){var nf=$("#rNf").value.trim();
+        o.nome=nome;o.doc=$("#rDoc").value.trim()||"—";o.contato=$("#rCon").value.trim()||"—";o.tel=$("#rTel").value.trim()||"—";o.email=$("#rEm").value.trim()||"—";o.serv=$("#rServ").value.trim()||"Serviço avulso";o.valor=val;
+        o.nf=nf;o.nfData=nf?($("#rNfD").value||o.nfData||TD):"";o.cob=cob;o.canal=canal;o.forma=$("#rForma").value;o.banco=$("#rBanco").value;o.venc=$("#rVenc").value;o.obs=$("#rObs").value.trim();if(o.pago)o.pago=$("#rPago").value;
+        REC_SEL=o.id;if(!pass(o))st.f="Todos";$("#rModal").hidden=true;all();toast("Lançamento de "+nome+" atualizado.")}REC_EDIT=0;return}
       var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?($("#rNfD").value||TD):"",cob:cob,canal:canal,forma:$("#rForma").value,banco:$("#rBanco").value,venc:$("#rVenc").value,pago:"",hist:[],obs:$("#rObs").value.trim()};
       RECEBER.push(n);REC_SEL=n.id;st.f="Todos";$("#rModal").hidden=true;all();toast("Lançamento de "+brl(val)+" para "+nome+" salvo.");return}
     var r=RECEBER.find(function(x){return x.id===REC_SEL});
