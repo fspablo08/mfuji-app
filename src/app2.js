@@ -168,17 +168,22 @@ VIEWS.cli=function(v){
 /* ===== A RECEBER ===== */
 var REC_SEL=0,REC_EDIT=0;
 VIEWS.rec=function(v){
-  var st={f:"Em aberto",q:""};
+  var st={f:"Em aberto",q:""},modo=store("recModo")||"plan",draft={};
+  var FORMAS=["Boleto","Pix","Transferência","Dinheiro"],BANCOS=["Conta Azul","Bradesco","Sicredi","Banco do Brasil","Conecta"],CANAIS=["E-mail","WhatsApp","Correio","Em mãos"];
+  /* colunas da planilha: campo, título, tipo, opções, texto da opção vazia */
+  var PCOL=[["nome","Cliente","text"],["doc","CNPJ/CPF","text"],["serv","Serviço","text"],["nf","Nota fiscal","text"],["venc","Vencimento","date"],["valor","Valor (R$)","num"],["forma","Forma","sel",FORMAS],["banco","Banco","sel",BANCOS,"Não definido"],["cob","Enviada","chk"],["canal","Enviada por","sel",CANAIS,"—"],["pago","Paga","chk"],["obs","Observação","text"]];
   var FIL=["Em aberto","Vencidos","Cobrança pendente","NF a emitir","Recebidos","Todos"];
   function pass(r){var s=recSt(r)[1];if(st.f==="Todos")return true;if(st.f==="Em aberto")return !r.pago;if(st.f==="Vencidos")return s==="Vencido";if(st.f==="Recebidos")return !!r.pago;return s===st.f}
   function aberto(){return RECEBER.filter(function(r){return !r.pago})}
   v.innerHTML='<div class="grid">'
   +'<div class="card c3 hero"><div class="ring" aria-hidden="true"></div><div class="hh"><span>Total a receber</span><button class="plus" type="button" data-rnew aria-label="Novo lançamento">+</button></div><div class="hv"><b class="num" id="rTot"></b>'+totOlho()+'</div><p class="hs" id="rTotS"></p><div class="ha"><button class="w" type="button" data-rnew style="white-space:nowrap">+ Novo</button></div></div>'
   +'<div class="card c9"><div class="ch"><h4>Clientes avulsos</h4><span class="sub">Serviços sem contrato, cobrados um a um</span></div><div class="kp" style="--n:4" id="rKp"></div></div>'
-  +'<div class="split c12"><div class="card"><div class="ch"><h4>Cobranças</h4><button class="cta" type="button" data-rnew>'+ic("plus",13)+'Novo lançamento</button></div>'
+  +'<div class="split c12" id="rSplit"><div class="card"><div class="ch"><h4>Cobranças</h4><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" role="group" aria-label="Visualização" id="rModo"><button type="button" data-rmodo="plan">Planilha</button><button type="button" data-rmodo="lista">Lista</button></div><button class="cta" type="button" data-rnew>'+ic("plus",13)+'Novo lançamento</button></div></div>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ ou nota fiscal" aria-label="Buscar cobranças"></div></div>'
    +'<div class="filt" role="group" aria-label="Situação" id="rFil"></div>'
-   +'<div class="scroll-x"><table class="tb" id="rTb"><thead><tr><th>Cliente</th><th>Nota fiscal</th><th>Cobrança enviada</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody></tbody></table></div></div>'
+   +'<div class="scroll-x"><table class="tb" id="rTb"><thead><tr><th>Cliente</th><th>Nota fiscal</th><th>Cobrança enviada</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody></tbody></table>'
+   +'<table class="tb rpl" id="rPl"><colgroup>'+PCOL.map(function(c){return '<col class="c-'+c[0]+'">'}).join("")+'<col class="c-st"><col class="c-ed"></colgroup><thead><tr>'+PCOL.map(function(c){return '<th'+(c[2]==="num"?' class="r"':'')+'>'+c[1]+'</th>'}).join("")+'<th>Situação</th><th></th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>'
+   +'<p class="sub rpl-dica" id="rPlDica">Clique numa célula e digite: tudo é salvo sozinho. Enter desce para a linha de baixo, Tab vai para a próxima coluna. Para lançar, preencha a última linha (cliente e valor bastam).</p></div>'
    +'<div class="card" id="rDet"></div></div></div>'
   +'<div class="modal" id="rModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="rmT"><h3 id="rmT">Novo lançamento a receber</h3>'
    +'<div class="sub" style="margin-bottom:-4px">Cliente avulso</div>'
@@ -211,7 +216,61 @@ VIEWS.rec=function(v){
     var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
     $("#rTb tbody").innerHTML=L.map(function(r){var s=recSt(r),late=s[1]==="Vencido"?diffDays(TD,r.venc):0;
       return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td><label class="rchk"><input type="checkbox" data-tcob'+(r.cob?' checked':'')+' aria-label="Cobrança enviada"><span>'+(r.cob?'<b>Enviada</b><small>'+dmy(r.cob)+(r.canal?' · '+r.canal:'')+'</small>':'<span class="pill al">Não enviada</span>')+'</span></label></td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma+(r.banco?' · '+r.banco:''))+'</small></td><td class="r num">'+brl(r.valor)+'</td><td><label class="rchk"><input type="checkbox" data-tpago'+(r.pago?' checked':'')+' aria-label="Paga"><span>'+(r.pago?'Paga':'Não paga')+'</span></label><span class="pill '+s[0]+'">'+s[1]+'</span></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
+    $("#rPl tbody").innerHTML=L.map(plRow).join("")+plNovo();plFoot();modoUI();
   }
+  function cel(r,c,novo){
+    var k=c[0],v=r[k],lab=' aria-label="'+c[1]+'" data-k="'+k+'"';
+    if(c[2]==="chk")return '<td class="pc"><input type="checkbox"'+lab+(v?' checked':'')+(v&&!novo?' title="'+(k==="cob"?"Enviada":"Paga")+' em '+dmy(v)+'"':'')+'></td>';
+    if(c[2]==="sel")return '<td><select'+lab+'>'+(c[4]?'<option value="">'+c[4]+'</option>':'')+c[3].map(function(o){return '<option'+(o===v?' selected':'')+'>'+o+'</option>'}).join("")+'</select></td>';
+    if(c[2]==="num")return '<td><input class="r num" type="text" inputmode="decimal"'+lab+' value="'+(v===""||v==null?"":plFmt(v))+'" placeholder="0,00"></td>';
+    if(c[2]==="date")return '<td><input type="text" inputmode="numeric" maxlength="10"'+lab+' value="'+(v?dmy(v):"")+'" placeholder="dd/mm/aaaa"></td>';
+    var t=(v==="—"||(k==="serv"&&v==="Serviço avulso"))?"":v;
+    return '<td><input type="text"'+lab+' value="'+esc(t)+'"'+(novo&&k==="nome"?' placeholder="+ Novo lançamento"':k==="nf"?' placeholder="A emitir"':'')+'></td>'}
+  function edBtn(r){return '<button class="ghost ped" type="button" data-redit title="Abrir o lançamento completo (contato, telefone, e-mail)" aria-label="Editar lançamento de '+esc(r.nome)+'">'+ic("edit",13)+'</button>'}
+  function pst(r){var s=recSt(r);return '<span class="pill '+s[0]+'">'+s[1]+'</span>'}
+  function plRow(r){return '<tr data-id="'+r.id+'"'+(r.id===REC_SEL?' class="pick"':'')+'>'+PCOL.map(function(c){return cel(r,c)}).join("")+'<td class="pst">'+pst(r)+'</td><td>'+edBtn(r)+'</td></tr>'}
+  function plNovo(){var d={nome:"",doc:"",serv:"",nf:"",venc:ymd(addDays(TODAY,10)),valor:"",forma:"Boleto",banco:"",cob:"",canal:"",pago:"",obs:""};for(var k in draft)d[k]=draft[k];
+    return '<tr data-id="novo" class="pnovo">'+PCOL.map(function(c){return cel(d,c,true)}).join("")+'<td class="pst"><span class="mut">Cliente e valor</span></td><td></td></tr>'}
+  function plLista(){var ids={};$$("#rPl tbody tr").forEach(function(x){ids[x.dataset.id]=1});return RECEBER.filter(function(r){return ids[r.id]})}
+  function plFoot(){var L=plLista(),t=L.reduce(function(s,r){return s+(+r.valor||0)},0);
+    $("#rPl tfoot").innerHTML='<tr><td class="mut">'+L.length+' lançamento'+(L.length===1?'':'s')+' na tela</td><td colspan="4"></td><td class="r num"><b>'+totVal(brl(t))+'</b></td><td colspan="8"></td></tr>'}
+  function plMarca(tr){$$("#rPl tr.pick").forEach(function(x){if(x!==tr)x.classList.remove("pick")});tr.classList.add("pick")}
+  function plFmt(n){return (+n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}
+  /* aceita 1.200,50 · 1200,5 · 1200.50 · 1200 */
+  function plNum(t){t=String(t).replace(/[R$\s]/g,"");if(!t)return 0;if(t.indexOf(",")>=0)t=t.replace(/\./g,"").replace(",",".");else if(/\.\d{3}$/.test(t))t=t.replace(/\./g,"");var n=+t;return isFinite(n)?Math.round(n*100)/100:0}
+  /* aceita 15/11, 15/11/26, 15/11/2026 ou 15112026; devolve aaaa-mm-dd ou "" */
+  function plData(t){var m=String(t).trim().match(/^(\d{1,2})[\/.\-]?(\d{1,2})(?:[\/.\-]?(\d{2}|\d{4}))?$/);if(!m)return "";
+    var d=+m[1],mo=+m[2],y=m[3]?(m[3].length===2?2000+ +m[3]:+m[3]):TODAY.getFullYear(),x=new Date(y,mo-1,d);
+    return x.getMonth()===mo-1&&x.getDate()===d?ymd(x):""}
+  function plGrava(r,inp){var k=inp.dataset.k,val=inp.type==="checkbox"?inp.checked:inp.value.trim();
+    if(k==="venc"){val=plData(val);if(!val){toast("Data inválida. Use dd/mm/aaaa.");inp.value=dmy(r.venc);return}inp.value=dmy(val)}
+    if(k==="nome"&&!val){toast("O cliente não pode ficar vazio.");inp.value=r.nome;return}
+    if(k==="valor"){val=plNum(val);if(!(val>0)){toast("Informe um valor maior que zero.");inp.value=plFmt(r.valor);return}inp.value=plFmt(val)}
+    if(k==="cob"){r.cob=val?(r.cob||TD):"";if(!val)r.canal=""}
+    else if(k==="pago")r.pago=val?(r.pago||TD):"";
+    else if(k==="nf"){if(val!==r.nf)r.nfData=val?TD:"";r.nf=val}
+    else if(k==="canal"){r.canal=val;if(val&&!r.cob)r.cob=TD}
+    else if(k==="doc")r.doc=val||"—";
+    else if(k==="serv")r.serv=val||"Serviço avulso";
+    else r[k]=val;
+    var tr=inp.closest("tr");REC_SEL=r.id;plMarca(tr);
+    $('[data-k="cob"]',tr).checked=!!r.cob;$('[data-k="canal"]',tr).value=r.canal||"";$('[data-k="pago"]',tr).checked=!!r.pago;
+    $(".pst",tr).innerHTML=pst(r);kp();plFoot()}
+  function plRascunho(inp){var tr=inp.closest("tr");
+    var g=function(k){var i=$('[data-k="'+k+'"]',tr);return i.type==="checkbox"?(i.checked?TD:""):i.value.trim()};
+    if(inp.dataset.k==="canal"&&inp.value)$('[data-k="cob"]',tr).checked=true;
+    PCOL.forEach(function(c){draft[c[0]]=g(c[0])});
+    if(inp.dataset.k==="venc"){var dv=plData(draft.venc);if(!dv&&draft.venc)toast("Data inválida. Use dd/mm/aaaa.");inp.value=dv?dmy(dv):dmy(ymd(addDays(TODAY,10)))}
+    draft.venc=plData($('[data-k="venc"]',tr).value)||ymd(addDays(TODAY,10));
+    var val=plNum(draft.valor);if(inp.dataset.k==="valor"&&val>0)inp.value=plFmt(val);
+    if(!draft.nome||!(val>0)){$(".pst",tr).innerHTML='<span class="mut">'+(!draft.nome?'Falta o cliente':'Falta o valor')+'</span>';return}
+    var n={id:nid(RECEBER),nome:draft.nome,doc:draft.doc||"—",contato:"—",tel:"—",email:"—",serv:draft.serv||"Serviço avulso",valor:val,nf:draft.nf,nfData:draft.nf?TD:"",cob:draft.cob||(draft.canal?TD:""),canal:draft.canal,forma:draft.forma||"Boleto",banco:draft.banco,venc:draft.venc||ymd(addDays(TODAY,10)),pago:draft.pago,hist:[],obs:draft.obs};
+    RECEBER.push(n);REC_SEL=n.id;draft={};
+    /* a linha vira o lançamento ali mesmo (o foco continua onde está) e uma linha em branco aparece embaixo */
+    tr.dataset.id=n.id;tr.className="";plMarca(tr);$(".pst",tr).innerHTML=pst(n);tr.lastElementChild.innerHTML=edBtn(n);$('[data-k="nome"]',tr).removeAttribute("placeholder");
+    tr.insertAdjacentHTML("afterend",plNovo());kp();plFoot();toast("Lançamento de "+brl(val)+" para "+n.nome+" salvo.")}
+  function modoUI(){var p=modo==="plan";$$("#rModo button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.rmodo===modo)});
+    $("#rTb").hidden=p;$("#rPl").hidden=!p;$("#rPlDica").hidden=!p;$("#rDet").hidden=p;$("#rSplit").classList.toggle("rplan",p)}
   function det(){
     var r=RECEBER.find(function(x){return x.id===REC_SEL});if(!r){$("#rDet").innerHTML='<p class="mut">'+(RECEBER.length?'Selecione uma cobrança.':'As cobranças lançadas aparecem aqui com o histórico: nota fiscal, envio da cobrança e pagamento.')+'</p>';return}
     var s=recSt(r),late=s[1]==="Vencido"?diffDays(TD,r.venc):0;
@@ -242,7 +301,19 @@ VIEWS.rec=function(v){
     if(e.target.id==="rQ"){st.q=e.target.value;table();return}
     if(e.target.id==="rDoc"){var d=digits(e.target.value);if(d.length===14||d.length===11)fillFrom(d)}
   });
+  v.addEventListener("change",function(e){var inp=e.target.closest("#rPl [data-k]");if(!inp)return;var tr=inp.closest("tr");
+    if(tr.dataset.id==="novo"){plRascunho(inp);return}
+    var r=RECEBER.find(function(x){return x.id===+tr.dataset.id});if(r)plGrava(r,inp)});
+  /* teclado de planilha: Enter (ou seta) desce/sobe na mesma coluna */
+  v.addEventListener("keydown",function(e){var inp=e.target.closest("#rPl [data-k]");if(!inp)return;
+    var up=e.key==="ArrowUp"||(e.key==="Enter"&&e.shiftKey),down=e.key==="ArrowDown"||(e.key==="Enter"&&!e.shiftKey);
+    if(!up&&!down)return;if(inp.tagName==="SELECT"&&e.key!=="Enter")return;
+    e.preventDefault();var k=inp.dataset.k,tr=inp.closest("tr");inp.blur();
+    var alvo=up?tr.previousElementSibling:tr.nextElementSibling,x=alvo&&alvo.querySelector('[data-k="'+k+'"]');
+    if(x){x.focus();if(x.select&&x.type!=="checkbox")x.select()}});
   v.addEventListener("click",function(e){
+    var md=e.target.closest("[data-rmodo]");if(md){modo=md.dataset.rmodo;store("recModo",modo);table();det();return}
+    var pe=e.target.closest("#rPl [data-redit]");if(pe)REC_SEL=+pe.closest("tr").dataset.id;
     var tk=e.target.closest("[data-tcob],[data-tpago]");if(tk){var tr=RECEBER.find(function(y){return y.id===+tk.closest("tr").dataset.id});if(!tr)return;REC_SEL=tr.id;
       if(tk.hasAttribute("data-tcob")){tr.cob=tk.checked?TD:"";if(!tk.checked)tr.canal="";toast(tk.checked?"Cobrança marcada como enviada.":"Cobrança marcada como não enviada.")}
       else{tr.pago=tk.checked?TD:"";toast(tk.checked?"Marcada como paga.":"Marcada como não paga.")}
