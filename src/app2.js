@@ -189,6 +189,7 @@ VIEWS.rec=function(v){
    +'<div class="sub" style="margin:4px 0 -4px">Cobrança</div><div class="form">'
    +'<div class="fld full"><label for="rServ">Serviço realizado</label><input id="rServ" placeholder="Ex.: desobstrução do vaso do banheiro do 3º andar"></div>'
    +'<div class="fld"><label for="rVal">Valor (R$)</label><input id="rVal" type="number" min="0" step="10" placeholder="0,00"></div><div class="fld"><label for="rVenc">Vencimento</label><input id="rVenc" type="date"></div>'
+   +'<div class="fld full rchkf"><label class="rchk"><input type="checkbox" id="rIss"> ISS e INSS <span class="mut">(desconta 16%)</span></label><div class="riss" id="rBol" hidden></div></div>'
    +'<div class="fld full"><label for="rNf">Nº da nota fiscal</label><input id="rNf" inputmode="numeric" placeholder="Deixe vazio se ainda não emitiu"></div>'
    +'<div class="fld"><label for="rForma">Forma de pagamento</label><select id="rForma"><option>Boleto</option><option>Pix</option><option>Transferência</option><option>Dinheiro</option></select></div><div class="fld"><label for="rBanco">Banco</label><select id="rBanco"><option value="">Não definido</option><option>Conta Azul</option><option>Bradesco</option><option>Sicredi</option><option>Banco do Brasil</option><option>Conecta</option></select></div>'
    +'<div class="fld rchkf"><label class="rchk"><input type="checkbox" id="rCobOk"> Cobrança enviada</label></div><div class="fld rchkf"><label class="rchk"><input type="checkbox" id="rPagoOk"> Paga</label></div>'
@@ -205,12 +206,14 @@ VIEWS.rec=function(v){
      +'<div><span class="sq">'+ic("up",14)+'</span><span class="t">Recebido em '+MES[TODAY.getMonth()].toLowerCase()+'</span><b class="num">'+sum(rec)+'</b><span class="pill ok">'+rec.length+' pagamentos</span></div>';
     
   }
+  function bolCalc(v){return Math.round((+v||0)*84)/100}
+  function bolUI(){var v=+$("#rVal").value||0,on=$("#rIss").checked,b=$("#rBol");b.hidden=!on;if(on)b.innerHTML='<span>Valor do serviço '+brl(v)+' − ISS e INSS 16% ('+brl(v-bolCalc(v))+')</span><b>Valor do boleto: '+brl(bolCalc(v))+'</b>'}
   function table(){
     $("#rFil").innerHTML=FIL.map(function(f){return '<button type="button" aria-pressed="'+(st.f===f)+'">'+f+'</button>'}).join("");
     var q=norm(st.q.trim()),qd=digits(q);
     var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
     $("#rTb tbody").innerHTML=L.map(function(r){var s=recSt(r),late=s[1]==="Vencido"?diffDays(TD,r.venc):0;
-      return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td class="c"><label class="rck" title="'+(r.cob?'Cobrança enviada em '+dmy(r.cob)+(r.canal?' por '+r.canal:''):'Cobrança não enviada')+'"><input type="checkbox" data-tcob'+(r.cob?' checked':'')+' aria-label="Cobrança enviada"></label></td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma+(r.banco?' · '+r.banco:''))+'</small></td><td class="r num">'+brl(r.valor)+'</td><td class="c"><label class="rck" title="'+(r.pago?'Paga em '+dmy(r.pago):'Não paga')+'"><input type="checkbox" data-tpago'+(r.pago?' checked':'')+' aria-label="Paga"></label></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
+      return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td class="c"><label class="rck" title="'+(r.cob?'Cobrança enviada em '+dmy(r.cob)+(r.canal?' por '+r.canal:''):'Cobrança não enviada')+'"><input type="checkbox" data-tcob'+(r.cob?' checked':'')+' aria-label="Cobrança enviada"></label></td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma+(r.banco?' · '+r.banco:''))+'</small></td><td class="r num">'+brl(r.valor)+(r.iss?'<small>c/ ISS e INSS</small>':'')+'</td><td class="c"><label class="rck" title="'+(r.pago?'Paga em '+dmy(r.pago):'Não paga')+'"><input type="checkbox" data-tpago'+(r.pago?' checked':'')+' aria-label="Paga"></label></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
   }
   function det(){
     var r=RECEBER.find(function(x){return x.id===REC_SEL});if(!r){$("#rDet").innerHTML='<p class="mut">'+(RECEBER.length?'Selecione uma cobrança.':'As cobranças lançadas aparecem aqui com o histórico: nota fiscal, envio da cobrança e pagamento.')+'</p>';return}
@@ -222,7 +225,7 @@ VIEWS.rec=function(v){
     tl.sort(function(a,b){return (a[0]||"0")<(b[0]||"0")?-1:1});
     var ini=r.nome.split(" ").filter(function(w){return w.length>2}).map(function(w){return w[0]}).join("").slice(0,2);
     $("#rDet").innerHTML='<div class="prof"><span class="bigav">'+ini+'</span><div style="flex:1;min-width:0"><h3>'+r.nome+'</h3><span class="sub">'+r.doc+'</span></div><span class="pill '+s[0]+'">'+s[1]+'</span></div>'
-    +'<div class="rval"><span class="sub">Valor</span><b class="num">'+brl(r.valor)+'</b><span class="sub">'+r.serv+'</span></div>'
+    +'<div class="rval"><span class="sub">'+(r.iss?'Valor do boleto':'Valor')+'</span><b class="num">'+brl(r.valor)+'</b>'+(r.iss&&r.valorServ?'<span class="sub">Serviço '+brl(r.valorServ)+' − ISS e INSS 16% ('+brl(r.valorServ-r.valor)+')</span>':'')+'<span class="sub">'+r.serv+'</span></div>'
     +(r.obs?'<div class="robs"><b>Observação</b><p>'+r.obs+'</p></div>':'')
     +'<div class="kv2"><div><small>Nota fiscal</small><span>'+(r.nf?'Nº '+r.nf+' · '+dmy(r.nfData):'A emitir')+'</span></div><div><small>Cobrança enviada</small><span>'+(r.cob?dmy(r.cob)+(r.canal?' · '+r.canal:''):'Não enviada')+'</span></div><div><small>Vencimento</small><span>'+dmy(r.venc)+' · '+r.forma+(r.banco?' · '+r.banco:'')+'</span></div><div><small>Recebido em</small><span>'+(r.pago?dmy(r.pago):'—')+'</span></div><div><small>Contato</small><span>'+r.contato+' · '+r.tel+'</span></div><div><small>E-mail</small><span>'+r.email+'</span></div></div>'
     +(!r.pago&&!r.nf?'<div class="nfrow"><div class="fld"><label for="dNf">Nº da nota fiscal</label><input id="dNf" inputmode="numeric" placeholder="Ex.: 2390"></div><button class="cta rq" type="button" data-dnf>Registrar nota</button></div>':'')
@@ -242,6 +245,8 @@ VIEWS.rec=function(v){
     if(e.target.id==="rQ"){st.q=e.target.value;table();return}
     if(e.target.id==="rDoc"){var d=digits(e.target.value);if(d.length===14||d.length===11)fillFrom(d)}
   });
+  v.addEventListener("input",function(e){if(e.target.id==="rVal"||e.target.id==="rIss")bolUI()});
+  v.addEventListener("change",function(e){if(e.target.id==="rIss")bolUI()});
   v.addEventListener("click",function(e){
     var tk=e.target.closest("[data-tcob],[data-tpago]");if(tk){var tr=RECEBER.find(function(y){return y.id===+tk.closest("tr").dataset.id});if(!tr)return;REC_SEL=tr.id;
       if(tk.hasAttribute("data-tcob")){tr.cob=tk.checked?TD:"";if(!tk.checked)tr.canal="";toast(tk.checked?"Cobrança marcada como enviada.":"Cobrança marcada como não enviada.")}
@@ -250,25 +255,25 @@ VIEWS.rec=function(v){
     if(e.target.closest("#rTb .rchk,#rTb .rck"))return;
     var r0=e.target.closest("#rTb tr.cl");if(r0){REC_SEL=+r0.dataset.id;table();det();if(window.innerWidth<1100)$("#rDet").scrollIntoView({behavior:"smooth"});return}
     var f=e.target.closest("#rFil button");if(f){st.f=f.textContent;table();return}
-    if(e.target.closest("[data-rnew]")){REC_EDIT=0;$("#rmT").textContent="Novo lançamento a receber";$("#rSave").textContent="Salvar lançamento";$$("#rModal input,#rModal textarea",v).forEach(function(i){i.value="";i.checked=false});$("#rVenc").value=ymd(addDays(TODAY,10));$("#rCanal").value="";$("#rBanco").value="";$("#rSt").innerHTML='<span class="mut">Se o cliente já tiver cobranças aqui, os dados dele são reaproveitados.</span>';$("#rModal").hidden=false;$("#rDoc").focus();return}
+    if(e.target.closest("[data-rnew]")){REC_EDIT=0;$("#rmT").textContent="Novo lançamento a receber";$("#rSave").textContent="Salvar lançamento";$$("#rModal input,#rModal textarea",v).forEach(function(i){i.value="";i.checked=false});$("#rVenc").value=ymd(addDays(TODAY,10));bolUI();$("#rCanal").value="";$("#rBanco").value="";$("#rSt").innerHTML='<span class="mut">Se o cliente já tiver cobranças aqui, os dados dele são reaproveitados.</span>';$("#rModal").hidden=false;$("#rDoc").focus();return}
     var re=e.target.closest("[data-redit]");if(re){var x=RECEBER.find(function(y){return y.id===REC_SEL});if(!x)return;REC_EDIT=x.id;
       $("#rmT").textContent="Editar lançamento";$("#rSave").textContent="Salvar alterações";
       var sv=function(id,val){$(id).value=(val&&val!=="—")?val:""};
-      sv("#rDoc",x.doc);sv("#rNome",x.nome);sv("#rCon",x.contato);sv("#rTel",x.tel);sv("#rEm",x.email);sv("#rServ",x.serv==="Serviço avulso"?"":x.serv);$("#rVal").value=x.valor||"";sv("#rVenc",x.venc);sv("#rNf",x.nf);
+      sv("#rDoc",x.doc);sv("#rNome",x.nome);sv("#rCon",x.contato);sv("#rTel",x.tel);sv("#rEm",x.email);sv("#rServ",x.serv==="Serviço avulso"?"":x.serv);$("#rVal").value=(x.iss&&x.valorServ?x.valorServ:x.valor)||"";$("#rIss").checked=!!x.iss;bolUI();sv("#rVenc",x.venc);sv("#rNf",x.nf);
       $("#rForma").value=x.forma||"Boleto";$("#rBanco").value=x.banco||"";$("#rCobOk").checked=!!x.cob;$("#rCanal").value=x.canal||"";sv("#rObs",x.obs);
       $("#rPagoOk").checked=!!x.pago;
       $("#rSt").innerHTML='<span class="mut">Altere o que precisar e clique em Salvar alterações.</span>';$("#rModal").hidden=false;$("#rNome").focus();return}
     if(e.target.closest("[data-rx]")||e.target===$("#rModal")){$("#rModal").hidden=true;return}
     if(e.target.closest("#rBusca")){fillFrom(digits($("#rDoc").value));return}
     if(e.target.closest("#rSave")){
-      var nome=$("#rNome").value.trim(),val=+$("#rVal").value;
+      var nome=$("#rNome").value.trim(),val=+$("#rVal").value,iss=$("#rIss").checked,serv0=val;if(iss)val=bolCalc(val);
       if(!nome){toast("Informe o cliente.");$("#rNome").focus();return}if(!val){toast("Informe o valor.");$("#rVal").focus();return}if(!$("#rVenc").value){toast("Informe o vencimento.");return}
       var ed=REC_EDIT&&RECEBER.find(function(y){return y.id===REC_EDIT}),cobOk=$("#rCobOk").checked,canal=cobOk?$("#rCanal").value:"",cob=cobOk?((ed&&ed.cob)||TD):"",pago=$("#rPagoOk").checked?((ed&&ed.pago)||TD):"";
       if(REC_EDIT){var o=RECEBER.find(function(y){return y.id===REC_EDIT});if(o){var nf=$("#rNf").value.trim();
         o.nome=nome;o.doc=$("#rDoc").value.trim()||"—";o.contato=$("#rCon").value.trim()||"—";o.tel=$("#rTel").value.trim()||"—";o.email=$("#rEm").value.trim()||"—";o.serv=$("#rServ").value.trim()||"Serviço avulso";o.valor=val;
-        o.nfData=nf?(nf===o.nf&&o.nfData?o.nfData:TD):"";o.nf=nf;o.cob=cob;o.canal=canal;o.forma=$("#rForma").value;o.banco=$("#rBanco").value;o.venc=$("#rVenc").value;o.obs=$("#rObs").value.trim();o.pago=pago;
+        o.nfData=nf?(nf===o.nf&&o.nfData?o.nfData:TD):"";o.nf=nf;o.cob=cob;o.canal=canal;o.forma=$("#rForma").value;o.banco=$("#rBanco").value;o.venc=$("#rVenc").value;o.obs=$("#rObs").value.trim();o.pago=pago;if(iss){o.iss=true;o.valorServ=serv0}else{delete o.iss;delete o.valorServ}
         REC_SEL=o.id;if(!pass(o))st.f="Todos";$("#rModal").hidden=true;all();toast("Lançamento de "+nome+" atualizado.")}REC_EDIT=0;return}
-      var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?TD:"",cob:cob,canal:canal,forma:$("#rForma").value,banco:$("#rBanco").value,venc:$("#rVenc").value,pago:pago,hist:[],obs:$("#rObs").value.trim()};
+      var n={id:nid(RECEBER),nome:nome,doc:$("#rDoc").value.trim()||"—",contato:$("#rCon").value.trim()||"—",tel:$("#rTel").value.trim()||"—",email:$("#rEm").value.trim()||"—",serv:$("#rServ").value.trim()||"Serviço avulso",valor:val,nf:$("#rNf").value.trim(),nfData:$("#rNf").value.trim()?TD:"",cob:cob,canal:canal,forma:$("#rForma").value,banco:$("#rBanco").value,venc:$("#rVenc").value,pago:pago,hist:[],obs:$("#rObs").value.trim()};if(iss){n.iss=true;n.valorServ=serv0}
       RECEBER.push(n);REC_SEL=n.id;st.f="Todos";$("#rModal").hidden=true;all();toast("Lançamento de "+brl(val)+" para "+nome+" salvo.");return}
     var r=RECEBER.find(function(x){return x.id===REC_SEL});
     if(e.target.closest("[data-dnf]")){var nf=$("#dNf").value.trim();if(!nf){toast("Informe o número da nota.");$("#dNf").focus();return}r.nf=nf;r.nfData=TD;all();toast("NF "+nf+" registrada.");return}
