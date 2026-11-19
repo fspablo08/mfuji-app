@@ -4,7 +4,7 @@
  * - faz um backup diário no KV (env.BACKUPS)
  */
 
-const APP_VERSAO = "2.2.7";
+const APP_VERSAO = "2.2.8";
 
 /* coleções da tela -> tabelas do banco */
 const COL = {

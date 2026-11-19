@@ -178,7 +178,7 @@ VIEWS.rec=function(v){
   +'<div class="split c12"><div class="card"><div class="ch"><h4>Cobranças</h4><button class="cta" type="button" data-rnew>'+ic("plus",13)+'Novo lançamento</button></div>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="search" style="flex:1 1 220px">'+ic("search",14)+'<input id="rQ" placeholder="Cliente, CNPJ ou nota fiscal" aria-label="Buscar cobranças"></div></div>'
    +'<div class="filt" role="group" aria-label="Situação" id="rFil"></div>'
-   +'<div class="scroll-x"><table class="tb" id="rTb"><thead><tr><th>Cliente</th><th>Nota fiscal</th><th>Vencimento</th><th class="r">Valor</th></tr></thead><tbody></tbody></table></div></div>'
+   +'<div class="scroll-x"><table class="tb" id="rTb"><thead><tr><th>Cliente</th><th>Nota fiscal</th><th class="c">Cobrança enviada</th><th>Vencimento</th><th class="r">Valor</th><th class="c">Situação</th></tr></thead><tbody></tbody></table></div></div>'
    +'<div class="card" id="rDet"></div></div></div>'
   +'<div class="modal" id="rModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="rmT"><h3 id="rmT">Novo lançamento a receber</h3>'
    +'<div class="sub" style="margin-bottom:-4px">Cliente avulso</div>'
@@ -210,7 +210,7 @@ VIEWS.rec=function(v){
     var q=norm(st.q.trim()),qd=digits(q);
     var L=RECEBER.filter(pass).filter(function(r){return !q||norm(r.nome+" "+r.doc+" "+r.nf+" "+r.serv).indexOf(q)>=0||(qd.length>=3&&(digits(r.doc)+" "+r.nf).indexOf(qd)>=0)}).sort(function(a,b){return a.venc<b.venc?-1:1});
     $("#rTb tbody").innerHTML=L.map(function(r){var s=recSt(r),late=s[1]==="Vencido"?diffDays(TD,r.venc):0;
-      return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma+(r.banco?' · '+r.banco:''))+'</small></td><td class="r num">'+brl(r.valor)+'</td></tr>'}).join("")||'<tr><td colspan="4" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
+      return '<tr class="cl'+(r.id===REC_SEL?' pick':'')+'" data-id="'+r.id+'"><td><b>'+r.nome+'</b><small>'+r.doc+'</small></td><td>'+(r.nf?'<b>NF '+r.nf+'</b><small>'+dmy(r.nfData)+'</small>':'<span class="mut">A emitir</span>')+'</td><td class="c"><label class="rck" title="'+(r.cob?'Cobrança enviada em '+dmy(r.cob)+(r.canal?' por '+r.canal:''):'Cobrança não enviada')+'"><input type="checkbox" data-tcob'+(r.cob?' checked':'')+' aria-label="Cobrança enviada"></label></td><td><b>'+dmy(r.venc)+'</b><small>'+(r.pago?'Pago em '+dmy(r.pago).slice(0,5):late?late+' dias de atraso':r.forma+(r.banco?' · '+r.banco:''))+'</small></td><td class="r num">'+brl(r.valor)+'</td><td class="c"><label class="rck" title="'+(r.pago?'Paga em '+dmy(r.pago):'Não paga')+'"><input type="checkbox" data-tpago'+(r.pago?' checked':'')+' aria-label="Paga"></label></td></tr>'}).join("")||'<tr><td colspan="6" class="mut">'+(RECEBER.length?'Nenhuma cobrança neste filtro.':'Nenhuma cobrança lançada ainda. Clique em Novo lançamento.')+'</td></tr>';
   }
   function det(){
     var r=RECEBER.find(function(x){return x.id===REC_SEL});if(!r){$("#rDet").innerHTML='<p class="mut">'+(RECEBER.length?'Selecione uma cobrança.':'As cobranças lançadas aparecem aqui com o histórico: nota fiscal, envio da cobrança e pagamento.')+'</p>';return}
@@ -247,7 +247,7 @@ VIEWS.rec=function(v){
       if(tk.hasAttribute("data-tcob")){tr.cob=tk.checked?TD:"";if(!tk.checked)tr.canal="";toast(tk.checked?"Cobrança marcada como enviada.":"Cobrança marcada como não enviada.")}
       else{tr.pago=tk.checked?TD:"";toast(tk.checked?"Marcada como paga.":"Marcada como não paga.")}
       if(!pass(tr))st.f="Todos";all();return}
-    if(e.target.closest("#rTb .rchk"))return;
+    if(e.target.closest("#rTb .rchk,#rTb .rck"))return;
     var r0=e.target.closest("#rTb tr.cl");if(r0){REC_SEL=+r0.dataset.id;table();det();if(window.innerWidth<1100)$("#rDet").scrollIntoView({behavior:"smooth"});return}
     var f=e.target.closest("#rFil button");if(f){st.f=f.textContent;table();return}
     if(e.target.closest("[data-rnew]")){REC_EDIT=0;$("#rmT").textContent="Novo lançamento a receber";$("#rSave").textContent="Salvar lançamento";$$("#rModal input,#rModal textarea",v).forEach(function(i){i.value="";i.checked=false});$("#rVenc").value=ymd(addDays(TODAY,10));$("#rCanal").value="";$("#rBanco").value="";$("#rSt").innerHTML='<span class="mut">Se o cliente já tiver cobranças aqui, os dados dele são reaproveitados.</span>';$("#rModal").hidden=false;$("#rDoc").focus();return}
