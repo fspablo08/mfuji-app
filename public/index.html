@@ -793,9 +793,14 @@ var SERV={
   "Limpeza preventiva da rede de esgoto":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Rede de esgoto"},
   "Limpeza preventiva da rede de água pluvial":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Rede pluvial"},
   "Limpeza dos ralos":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Ralos"},
-  "Limpeza dos poços":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Poços"},
+  "Manutenção dos poços":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Poços"},
   "Vistoria para elaboração de orçamento":{c:"#3E8E6A",g:"Vistoria",sh:"Vistoria p/ orçamento"}
 };
+/* nomes antigos: continuam com cor e nome curto nos agendamentos já salvos, mas não aparecem mais para marcar */
+var SERV_ANT={"Limpeza dos poços":"Manutenção dos poços"};
+Object.keys(SERV_ANT).forEach(function(a){SERV[a]=Object.assign({},SERV[SERV_ANT[a]],{ant:1})});
+/* serviços de um agendamento (pode não ter nenhum) */
+function svsOf(e){return (e.svs||(e.s?[e.s]:[])).filter(Boolean)}
 /* serviço fora da lista (ex.: trazido da agenda antiga) aparece em cinza */
 function svCor(s){return SERV[s]?SERV[s].c:"#8A8F98"}
 var SFAM=[["Controle de pragas","#253C8D"],["Reservatórios de água","#3872CF"],["Redes de esgoto e pluvial","#B49B54"],["Vistoria","#3E8E6A"]];
@@ -895,8 +900,8 @@ function firstName(n){return n.split(" ")[0]}
 
 /* histórico e garantias do cliente saem da agenda */
 function cliEvs(c){return EVENTS.filter(function(e){return e.cli===c.nome})}
-function histOf(c){return cliEvs(c).filter(function(e){return e.date<=TD}).sort(function(a,b){return a.date<b.date?1:-1}).map(function(e){return [e.date,(e.svs||[e.s])[0],(e.svs||[e.s]).join(", "),""]})}
-function garOf(c){var seen={},out=[];cliEvs(c).filter(function(e){return e.gar>0}).forEach(function(e){var k=e.grp||e.id;if(seen[k])return;var g=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];var last=g.map(function(x){return x.date}).sort().pop();if(last>TD)return;seen[k]=1;out.push([(e.svs||[e.s])[0],last,e.gar*30])});return out}
+function histOf(c){return cliEvs(c).filter(function(e){return e.date<=TD}).sort(function(a,b){return a.date<b.date?1:-1}).map(function(e){return [e.date,svsOf(e)[0]||"Sem serviço",svsOf(e).join(", "),""]})}
+function garOf(c){var seen={},out=[];cliEvs(c).filter(function(e){return e.gar>0}).forEach(function(e){var k=e.grp||e.id;if(seen[k])return;var g=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];var last=g.map(function(x){return x.date}).sort().pop();if(last>TD)return;seen[k]=1;out.push([svsOf(e)[0]||"Sem serviço",last,e.gar*30])});return out}
 
 /* pastas do Drive conhecidas pelo sistema (as vinculadas aos clientes) */
 var DRIVE_FOLDERS=CLIENTES.filter(function(c){return c.pasta}).map(function(c){return c.pasta.replace("Clientes / ","")});
@@ -919,7 +924,7 @@ function fmtCNPJ(d){return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1
 function recSt(r){if(r.pago)return["ok","Recebido"];if(!r.nf)return["ne","NF a emitir"];if(r.venc<TD)return["er","Vencido"];if(!r.cob)return["al","Cobrança pendente"];return["in","A vencer"]}
 
 /* Vencimento de garantia: um item por agendamento com garantia, na data em que ela vence */
-function vencList(){var g={};EVENTS.forEach(function(e){if(!e.gar)return;var k=e.grp||e.id;if(!g[k]||e.date>g[k].last)g[k]={k:k,cli:e.cli,svs:e.svs||[e.s],last:e.date,gar:e.gar,ev:e.id}});
+function vencList(){var g={};EVENTS.forEach(function(e){if(!e.gar)return;var k=e.grp||e.id;if(!g[k]||e.date>g[k].last)g[k]={k:k,cli:e.cli,svs:svsOf(e),last:e.date,gar:e.gar,ev:e.id}});
   return Object.keys(g).map(function(k){var x=g[k];x.venc=addMonths(x.last,x.gar);
     x.renov=EVENTS.some(function(e){return e.cli===x.cli&&(e.grp||e.id)!==k&&e.date>x.last});return x}).filter(function(x){return !x.renov})}
 function vencOn(k){return vencList().filter(function(x){return x.venc===k})}
@@ -927,11 +932,11 @@ function vencOn(k){return vencList().filter(function(x){return x.venc===k})}
 function recOn(k){return RECEBER.filter(function(r){return r.venc===k})}
 function recTit(r){return (r.pago?"Recebido: ":"A receber: ")+r.nome+" · "+brl(r.valor)}
 function vencMsg(x){var c=CLIENTES.find(function(y){return y.nome===x.cli}),nm=c&&c.contato?firstName(c.contato):x.cli;
-  return "Olá, "+nm+"! Tudo bem? Aqui é da Monte Fuji. O serviço de "+x.svs.join(", ").toLowerCase()+" realizado em "+dmy(x.last)+" está com a garantia vencendo em "+dmy(x.venc)+". Para manter o local protegido, precisamos agendar uma nova aplicação. Qual a melhor data para vocês?"}
+  return "Olá, "+nm+"! Tudo bem? Aqui é da Monte Fuji. O serviço "+(x.svs.length?"de "+x.svs.join(", ").toLowerCase()+" ":"")+"realizado em "+dmy(x.last)+" está com a garantia vencendo em "+dmy(x.venc)+". Para manter o local protegido, precisamos agendar uma nova aplicação. Qual a melhor data para vocês?"}
 /* Uma semana antes do vencimento cria a anotação de contato (uma vez só, mesmo se apagada) */
 function syncVenc(){var n=0;vencList().forEach(function(x){if(VK.indexOf(x.k)>=0)return;var aviso=ymd(addDays(new Date(x.venc+"T12:00"),-7));
   if(TD<aviso||TD>ymd(addDays(new Date(x.venc+"T12:00"),30)))return;
-  TAREFAS.push({id:nid(TAREFAS),col:"todo",t:"Garantia vencendo: "+x.cli,d:x.svs.join(", ")+" realizado em "+dmy(x.last)+". Vence em "+dmy(x.venc)+". Entrar em contato e agendar nova aplicação.",due:x.venc,who:"MF",done:false,vk:x.k,msg:vencMsg(x)});VK.push(x.k);n++});
+  TAREFAS.push({id:nid(TAREFAS),col:"todo",t:"Garantia vencendo: "+x.cli,d:(x.svs.length?x.svs.join(", "):"Serviço")+" realizado em "+dmy(x.last)+". Vence em "+dmy(x.venc)+". Entrar em contato e agendar nova aplicação.",due:x.venc,who:"MF",done:false,vk:x.k,msg:vencMsg(x)});VK.push(x.k);n++});
   if(n)dbSave();return n}
 
 /* Peças do comunicado (cabeçalho, mascote e rodapé), tiradas do modelo da Monte Fuji */
@@ -1351,7 +1356,7 @@ VIEWS.dash=function(v){
 function stPill(s){var m={"Concluída":"ok","Cancelada":"er","Aguardando assinatura":"al","Agendada":"in","Em execução":"in"};return '<span class="pill '+(m[s]||"ne")+'">'+s+'</span>'}
 
 /* ===== AGENDA ===== */
-function svShort(e){return (e.svs||[e.s]).map(function(s){return SERV[s]?SERV[s].sh:s}).join(" + ")}
+function svShort(e){return svsOf(e).map(function(s){return SERV[s]?SERV[s].sh:s}).join(" + ")||"Sem serviço"}
 function garTxt(n){return n?(n===1?"1 mês":n+" meses"):"Sem garantia"}
 function addMonths(ds,n){var p=ds.split("-"),d=new Date(+p[0],+p[1]-1+n,+p[2]);return ymd(d)}
 function hh(h){return String(h).padStart(2,"0")+":00"}
@@ -1369,7 +1374,7 @@ VIEWS.agenda=function(v){
    +'<div class="acts"><button class="ghost" type="button" data-wpx>Fechar</button><button class="cta rq" type="button" id="wpCopy">'+ic("doc",13)+' Copiar</button></div></div></div>'
    +'<div class="modal" id="evModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="evT"><h3 id="evT">Novo agendamento</h3><div class="form">'
    +'<div class="fld full"><label for="evCli">Cliente</label>'+cliPick("evCli")+'</div>'
-   +'<div class="fld full"><span class="lbl">Serviços <small>· marque um ou mais</small></span><div class="svpick">'+Object.keys(SERV).map(function(s,i){return '<label><input type="checkbox" value="'+s+'"><i style="background:'+SERV[s].c+'"></i><span>'+s+'</span></label>'}).join("")+'</div></div>'
+   +'<div class="fld full"><span class="lbl">Serviços <small>· opcional, marque um ou mais</small></span><div class="svpick">'+Object.keys(SERV).filter(function(s){return !SERV[s].ant}).map(function(s,i){return '<label><input type="checkbox" value="'+s+'"><i style="background:'+SERV[s].c+'"></i><span>'+s+'</span></label>'}).join("")+'</div></div>'
    +'<div class="fld full"><span class="lbl">Datas e horários</span><div id="evDates"></div><button class="add-d" type="button" id="evAddD">'+ic("plus",12)+' Adicionar outra data</button></div>'
    +'<div class="fld full"><span class="lbl">Garantia</span><div class="seg gar" role="group" aria-label="Garantia">'+GAR_OPC.map(function(g){return '<button type="button" data-gar="'+g[0]+'">'+g[1]+'</button>'}).join("")+'</div></div>'
    +'<div class="fld"><label for="evDur">Duração prevista</label><select id="evDur"><option value="1">1 hora</option><option value="2" selected>2 horas</option><option value="3">3 horas</option><option value="4">4 horas</option><option value="8">Dia inteiro</option></select></div>'
@@ -1424,7 +1429,7 @@ VIEWS.agenda=function(v){
     var last=grp[grp.length-1].date;
     $("#sdCard").innerHTML='<div class="evc"><div class="ch"><button class="ghost" type="button" data-back>‹ '+DIA3[dt.getDay()]+", "+p[2]+"/"+p[1]+'</button><button class="dots" type="button" data-back aria-label="Fechar">×</button></div>'
      +'<div class="evh" style="--c:'+svCor(e.s)+'"><small>'+DIA3[dt.getDay()]+', '+dmy(e.date)+' · '+hh(e.h)+' às '+hh(Math.min(e.h+e.dur,19))+'</small><b>'+e.cli+'</b><span>'+(c?c.end:"Cliente sem cadastro completo")+'</span></div>'
-     +'<div class="sub">Serviços</div><div class="svl">'+(e.svs||[e.s]).map(function(s){return '<span style="--c:'+svCor(s)+'">'+s+'</span>'}).join("")+'</div>'
+     +'<div class="sub">Serviços</div><div class="svl">'+(svsOf(e).map(function(s){return '<span style="--c:'+svCor(s)+'">'+s+'</span>'}).join("")||'<span class="mut">Nenhum serviço informado</span>')+'</div>'
      +'<div class="kv2"><div><small>Garantia</small><span>'+garTxt(e.gar)+(e.gar?'<em>até '+dmy(addMonths(last,e.gar))+'</em>':'')+'</span></div><div><small>Duração</small><span>'+e.dur+(e.dur===1?' hora':' horas')+'</span></div>'
      +(c?'<div><small>Contato</small><span>'+c.contato+'</span></div><div><small>Telefone</small><span>'+c.tel+'</span></div>':'')+'</div>'
      +(grp.length>1?'<div class="sub">Datas deste agendamento</div><ul class="dlist">'+grp.map(function(x){return '<li'+(x.id===e.id?' class="on"':'')+' data-ev="'+x.id+'">'+DIA3[new Date(x.date+"T12:00").getDay()]+', '+dmy(x.date)+' · '+hh(x.h)+'</li>'}).join("")+'</ul>':'')
@@ -1449,14 +1454,14 @@ VIEWS.agenda=function(v){
     var k=$("#wpD").value,dt=new Date(k+"T12:00"),am=ymd(addDays(TODAY,1)),evs=evOn(k);
     var dia=k===am?"amanhã":DIA_EXT[dt.getDay()]+", "+dmy(k).slice(0,5);
     var t="*"+$("#wpS").value+", horários de "+dia+"*\n\n";
-    t+=evs.length?evs.map(function(e,i){return "*Serviço "+(i+1)+"*\n*Local:* "+e.cli+"\n*Serviço:* "+svJoin(e.svs||[e.s])+"\n*Horário:* "+hh(e.h)+"\n*Técnicos:* \n*OBS:* "+(e.obs||"")}).join("\n\n"):"Sem serviços agendados para este dia.";
+    t+=evs.length?evs.map(function(e,i){return "*Serviço "+(i+1)+"*\n*Local:* "+e.cli+"\n*Serviço:* "+svJoin(svsOf(e))+"\n*Horário:* "+hh(e.h)+"\n*Técnicos:* \n*OBS:* "+(e.obs||"")}).join("\n\n"):"Sem serviços agendados para este dia.";
     $("#wpTxt").value=t.replace(/[ ]+$/gm,function(m){return m}) ;
   }
   v.addEventListener("change",function(e){if(e.target.id==="wpD"||e.target.id==="wpS")wpFill()});
   /* busca de agendamentos pelo nome do cliente (ou serviço): próximos primeiro, depois os passados */
   function agBusca(){
     var q=norm($("#agQ").value.trim()),box=$("#agRes");if(!q){box.hidden=true;box.innerHTML="";return}
-    var l=EVENTS.filter(function(e){return norm(e.cli+" "+(e.svs||[e.s]).join(" ")).indexOf(q)>=0}),
+    var l=EVENTS.filter(function(e){return norm(e.cli+" "+svsOf(e).join(" ")).indexOf(q)>=0}),
       fut=l.filter(function(e){return e.date>=TD}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),
       pas=l.filter(function(e){return e.date<TD}).sort(function(a,b){return a.date>b.date?-1:a.date<b.date?1:a.h-b.h});
     function li(e){var dt=new Date(e.date+"T12:00");return '<li data-agev="'+e.id+'" tabindex="0"><span class="tm">'+dmy(e.date)+'<small>'+DIA3[dt.getDay()]+' · '+hh(e.h)+'</small></span><span class="bar-t" style="background:'+svCor(e.s)+'"></span><span class="grow"><b>'+esc(e.cli)+'</b><small>'+svShort(e)+'</small></span></li>'}
@@ -1470,7 +1475,7 @@ VIEWS.agenda=function(v){
   function grpOf(e){return e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e]}
   /* edição: mesma janela do novo agendamento, já preenchida com todas as datas do agendamento */
   function openEdit(id){var e=EVENTS.find(function(x){return x.id===id});if(!e)return;modo(id);
-    var g=grpOf(e).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),svs=e.svs||[e.s];
+    var g=grpOf(e).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),svs=svsOf(e).map(function(s){return SERV_ANT[s]||s});
     $("#evCli").value=e.cli;$$(".svpick input",v).forEach(function(x){x.checked=svs.indexOf(x.value)>=0});
     $("#evDates").innerHTML=g.map(function(x){return dateRow(x.date,x.h)}).join("");$("#evObs").value=e.obs||"";
     var du=$("#evDur");du.value=String(e.dur);if(du.value!==String(e.dur)){du.insertAdjacentHTML("beforeend",'<option value="'+e.dur+'">'+e.dur+' horas</option>');du.value=String(e.dur)}
@@ -1494,7 +1499,7 @@ VIEWS.agenda=function(v){
     var day=t.closest("[data-day]");if(day){if(e.detail===2||day.classList.contains("hd")){var p=day.dataset.day.split("-");st.d=new Date(+p[0],+p[1]-1,+p[2]);st.view="dia";st.sel=day.dataset.day;st.ev=null;render()}else side(day.dataset.day);return}
     var ym=t.closest(".ym");if(ym){st.d=new Date(st.d.getFullYear(),+ym.dataset.m,1);st.view="mes";render();return}
     if(t.closest("[data-edit]")){openEdit(st.ev);return}
-    if(t.closest("[data-com]")){var evc=EVENTS.find(function(x){return x.id===st.ev});if(evc)openComunicado(evc);return}
+    if(t.closest("[data-com]")){var evc=EVENTS.find(function(x){return x.id===st.ev});if(evc){if(!svsOf(evc).length){toast("Marque pelo menos um serviço no agendamento para gerar o comunicado.");return}openComunicado(evc)}return}
     if(t.closest("#cNew")){openNew();return}
     if(t.closest("#cWpp")){$("#wpD").value=amanha();var hr=new Date().getHours();$("#wpS").value=hr<12?"Bom dia":hr<18?"Boa tarde":"Boa noite";wpFill();$("#wpModal").hidden=false;return}
     if(t.closest("[data-wpx]")||t===$("#wpModal")){$("#wpModal").hidden=true;return}
@@ -1508,19 +1513,18 @@ VIEWS.agenda=function(v){
     if(t.closest("#evSave")){
       var cli=$("#evCli").value.trim(),svs=$$(".svpick input:checked",v).map(function(x){return x.value}),ds=$$("#evDates .drow",v).map(function(r){return {d:$("input",r).value,h:+$("select",r).value}}).filter(function(x){return x.d});
       if(!cli){toast("Informe o cliente.");$("#evCli").focus();return}
-      if(!svs.length){toast("Marque pelo menos um serviço.");return}
       if(!ds.length){toast("Escolha pelo menos uma data.");return}
       ds.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:a.h-b.h});
       var dur=+$("#evDur").value,obs=$("#evObs").value.trim(),first=null,ed=st.edit&&EVENTS.find(function(x){return x.id===st.edit});
       if(ed){
         /* reaproveita os registros que já existiam (mesmo código no banco) e só cria ou apaga as datas que mudaram de quantidade */
         var old=grpOf(ed).sort(function(a,b){return a.id===ed.id?-1:b.id===ed.id?1:a.date<b.date?-1:1}),grp=ed.grp||("g"+Date.now()),stamp=Date.now().toString(36);
-        ds.forEach(function(x,i){var o=old[i];if(!o){o={id:grp+"-"+stamp+i};EVENTS.push(o)}o.grp=grp;o.date=x.d;o.h=x.h;o.dur=dur;o.s=svs[0];o.svs=svs;o.cli=cli;o.gar=st.gar;o.obs=obs;if(!first||x.d<first.date)first=o});
+        ds.forEach(function(x,i){var o=old[i];if(!o){o={id:grp+"-"+stamp+i};EVENTS.push(o)}o.grp=grp;o.date=x.d;o.h=x.h;o.dur=dur;o.s=svs[0]||"";o.svs=svs;o.cli=cli;o.gar=st.gar;o.obs=obs;if(!first||x.d<first.date)first=o});
         old.slice(ds.length).forEach(function(o){EVENTS.splice(EVENTS.indexOf(o),1)});
         first=old[0]&&EVENTS.indexOf(old[0])>=0?old[0]:first;
       }else{
         var grp="g"+Date.now();
-        ds.forEach(function(x,i){var ne={id:grp+"-"+i,grp:grp,date:x.d,h:x.h,dur:dur,s:svs[0],svs:svs,cli:cli,gar:st.gar,obs:obs};EVENTS.push(ne);if(!first)first=ne});
+        ds.forEach(function(x,i){var ne={id:grp+"-"+i,grp:grp,date:x.d,h:x.h,dur:dur,s:svs[0]||"",svs:svs,cli:cli,gar:st.gar,obs:obs};EVENTS.push(ne);if(!first)first=ne});
       }
       $("#evModal").hidden=true;modo(null);var p2=first.date.split("-");st.d=new Date(+p2[0],+p2[1]-1,+p2[2]);st.ev=first.id;render();
       toast(ed?"Agendamento de "+cli+" atualizado.":ds.length>1?ds.length+" datas agendadas para "+cli+".":"Agendado para "+dmy(first.date)+".");}
@@ -2080,7 +2084,7 @@ function openComunicado(e){
     ds=ds.filter(function(x,i){return !i||x!==ds[i-1]});
     return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,ds:ds,h:+$("#cmHora").value,obs:$("#cmObs").value,svs:m._svs}}
   function prev(){var o=cur();if(!o.ds.length)o.ds=[e.date];comCanvas(comDados(o),.9).then(function(cv){$("#cmPrev").src=cv.toDataURL("image/png")})}
-  m._svs=e.svs||[e.s];$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
+  m._svs=svsOf(e);$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
   /* serviço cadastrado em vários dias: todos os dias do agendamento vão no mesmo comunicado */
   var grp=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];if(!grp.length)grp=[e];
   $("#cmDias").innerHTML=grp.sort(function(a,b){return a.date<b.date?-1:1}).map(function(x){return diaRow(x.date)}).join("");$("#cmHora").value=String(grp[0].h);
