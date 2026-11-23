@@ -397,9 +397,10 @@ function saveFile(name,blob,cb){
   var c=window.claude;if(!c||!c.use)return direct();
   c.use("downloads").then(function(d){if(!d)return direct();d.save({filename:name,data:blob}).then(function(){cb&&cb(true)},function(er){cb&&cb(false,er&&er.code)})},direct)}
 function comTextos(svs){var pr="Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. Recomendamos manter as janelas fechadas e evitar a circulação e a permanência nas áreas sinalizadas por nossa equipe, especialmente de crianças, gestantes, idosos e animais de estimação.",
-  ag="Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. Recomendamos o uso consciente da água, a fim de evitar possíveis interrupções no abastecimento durante o período de manutenção.";
-  var ps=[];svs.forEach(function(s){var t=SERV[s]&&SERV[s].g==="Reservatórios de água"?ag:pr;if(ps.indexOf(t)<0)ps.push(t)});
-  if(ps.length>1)ps=[ps[0],ps[1].replace("Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. ","")];return ps}
+  ag="Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. Recomendamos o uso consciente da água, a fim de evitar possíveis interrupções no abastecimento durante o período de manutenção.",
+  vi="Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. Nossa equipe fará uma avaliação técnica das instalações para a elaboração do orçamento, por isso poderá ser necessário o acesso a algumas áreas, como casas de máquinas, reservatórios e caixas de inspeção.";
+  var ps=[];svs.forEach(function(s){var g=SERV[s]&&SERV[s].g,t=g==="Reservatórios de água"?ag:g==="Vistoria"?vi:pr;if(ps.indexOf(t)<0)ps.push(t)});
+  return ps.map(function(t,i){return i?t.replace("Contamos com a compreensão e a colaboração de todos durante a execução dos serviços. ",""):t})}
 function listaPt(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" e "+a[a.length-1]}
 /* "No dia 25 de Outubro de 2026" ou, com vários dias, "Nos dias 25, 26 e 27 de Outubro de 2026" (mês e ano só se repetem quando mudam) */
 function comQuando(ds,h){var ps=ds.map(function(x){return x.split("-")});
