@@ -23,9 +23,14 @@ var SERV={
   "Limpeza preventiva da rede de esgoto":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Rede de esgoto"},
   "Limpeza preventiva da rede de água pluvial":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Rede pluvial"},
   "Limpeza dos ralos":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Ralos"},
-  "Limpeza dos poços":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Poços"},
+  "Manutenção dos poços":{c:"#B49B54",g:"Redes de esgoto e pluvial",sh:"Poços"},
   "Vistoria para elaboração de orçamento":{c:"#3E8E6A",g:"Vistoria",sh:"Vistoria p/ orçamento"}
 };
+/* nomes antigos: continuam com cor e nome curto nos agendamentos já salvos, mas não aparecem mais para marcar */
+var SERV_ANT={"Limpeza dos poços":"Manutenção dos poços"};
+Object.keys(SERV_ANT).forEach(function(a){SERV[a]=Object.assign({},SERV[SERV_ANT[a]],{ant:1})});
+/* serviços de um agendamento (pode não ter nenhum) */
+function svsOf(e){return (e.svs||(e.s?[e.s]:[])).filter(Boolean)}
 /* serviço fora da lista (ex.: trazido da agenda antiga) aparece em cinza */
 function svCor(s){return SERV[s]?SERV[s].c:"#8A8F98"}
 var SFAM=[["Controle de pragas","#253C8D"],["Reservatórios de água","#3872CF"],["Redes de esgoto e pluvial","#B49B54"],["Vistoria","#3E8E6A"]];
@@ -125,8 +130,8 @@ function firstName(n){return n.split(" ")[0]}
 
 /* histórico e garantias do cliente saem da agenda */
 function cliEvs(c){return EVENTS.filter(function(e){return e.cli===c.nome})}
-function histOf(c){return cliEvs(c).filter(function(e){return e.date<=TD}).sort(function(a,b){return a.date<b.date?1:-1}).map(function(e){return [e.date,(e.svs||[e.s])[0],(e.svs||[e.s]).join(", "),""]})}
-function garOf(c){var seen={},out=[];cliEvs(c).filter(function(e){return e.gar>0}).forEach(function(e){var k=e.grp||e.id;if(seen[k])return;var g=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];var last=g.map(function(x){return x.date}).sort().pop();if(last>TD)return;seen[k]=1;out.push([(e.svs||[e.s])[0],last,e.gar*30])});return out}
+function histOf(c){return cliEvs(c).filter(function(e){return e.date<=TD}).sort(function(a,b){return a.date<b.date?1:-1}).map(function(e){return [e.date,svsOf(e)[0]||"Sem serviço",svsOf(e).join(", "),""]})}
+function garOf(c){var seen={},out=[];cliEvs(c).filter(function(e){return e.gar>0}).forEach(function(e){var k=e.grp||e.id;if(seen[k])return;var g=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];var last=g.map(function(x){return x.date}).sort().pop();if(last>TD)return;seen[k]=1;out.push([svsOf(e)[0]||"Sem serviço",last,e.gar*30])});return out}
 
 /* pastas do Drive conhecidas pelo sistema (as vinculadas aos clientes) */
 var DRIVE_FOLDERS=CLIENTES.filter(function(c){return c.pasta}).map(function(c){return c.pasta.replace("Clientes / ","")});
@@ -149,7 +154,7 @@ function fmtCNPJ(d){return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1
 function recSt(r){if(r.pago)return["ok","Recebido"];if(!r.nf)return["ne","NF a emitir"];if(r.venc<TD)return["er","Vencido"];if(!r.cob)return["al","Cobrança pendente"];return["in","A vencer"]}
 
 /* Vencimento de garantia: um item por agendamento com garantia, na data em que ela vence */
-function vencList(){var g={};EVENTS.forEach(function(e){if(!e.gar)return;var k=e.grp||e.id;if(!g[k]||e.date>g[k].last)g[k]={k:k,cli:e.cli,svs:e.svs||[e.s],last:e.date,gar:e.gar,ev:e.id}});
+function vencList(){var g={};EVENTS.forEach(function(e){if(!e.gar)return;var k=e.grp||e.id;if(!g[k]||e.date>g[k].last)g[k]={k:k,cli:e.cli,svs:svsOf(e),last:e.date,gar:e.gar,ev:e.id}});
   return Object.keys(g).map(function(k){var x=g[k];x.venc=addMonths(x.last,x.gar);
     x.renov=EVENTS.some(function(e){return e.cli===x.cli&&(e.grp||e.id)!==k&&e.date>x.last});return x}).filter(function(x){return !x.renov})}
 function vencOn(k){return vencList().filter(function(x){return x.venc===k})}
@@ -157,11 +162,11 @@ function vencOn(k){return vencList().filter(function(x){return x.venc===k})}
 function recOn(k){return RECEBER.filter(function(r){return r.venc===k})}
 function recTit(r){return (r.pago?"Recebido: ":"A receber: ")+r.nome+" · "+brl(r.valor)}
 function vencMsg(x){var c=CLIENTES.find(function(y){return y.nome===x.cli}),nm=c&&c.contato?firstName(c.contato):x.cli;
-  return "Olá, "+nm+"! Tudo bem? Aqui é da Monte Fuji. O serviço de "+x.svs.join(", ").toLowerCase()+" realizado em "+dmy(x.last)+" está com a garantia vencendo em "+dmy(x.venc)+". Para manter o local protegido, precisamos agendar uma nova aplicação. Qual a melhor data para vocês?"}
+  return "Olá, "+nm+"! Tudo bem? Aqui é da Monte Fuji. O serviço "+(x.svs.length?"de "+x.svs.join(", ").toLowerCase()+" ":"")+"realizado em "+dmy(x.last)+" está com a garantia vencendo em "+dmy(x.venc)+". Para manter o local protegido, precisamos agendar uma nova aplicação. Qual a melhor data para vocês?"}
 /* Uma semana antes do vencimento cria a anotação de contato (uma vez só, mesmo se apagada) */
 function syncVenc(){var n=0;vencList().forEach(function(x){if(VK.indexOf(x.k)>=0)return;var aviso=ymd(addDays(new Date(x.venc+"T12:00"),-7));
   if(TD<aviso||TD>ymd(addDays(new Date(x.venc+"T12:00"),30)))return;
-  TAREFAS.push({id:nid(TAREFAS),col:"todo",t:"Garantia vencendo: "+x.cli,d:x.svs.join(", ")+" realizado em "+dmy(x.last)+". Vence em "+dmy(x.venc)+". Entrar em contato e agendar nova aplicação.",due:x.venc,who:"MF",done:false,vk:x.k,msg:vencMsg(x)});VK.push(x.k);n++});
+  TAREFAS.push({id:nid(TAREFAS),col:"todo",t:"Garantia vencendo: "+x.cli,d:(x.svs.length?x.svs.join(", "):"Serviço")+" realizado em "+dmy(x.last)+". Vence em "+dmy(x.venc)+". Entrar em contato e agendar nova aplicação.",due:x.venc,who:"MF",done:false,vk:x.k,msg:vencMsg(x)});VK.push(x.k);n++});
   if(n)dbSave();return n}
 
 /* Peças do comunicado (cabeçalho, mascote e rodapé), tiradas do modelo da Monte Fuji */

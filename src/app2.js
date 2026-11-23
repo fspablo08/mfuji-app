@@ -488,7 +488,7 @@ function openComunicado(e){
     ds=ds.filter(function(x,i){return !i||x!==ds[i-1]});
     return {nome:$("#cmNome").value.trim(),pub:$("#cmPub").value,ds:ds,h:+$("#cmHora").value,obs:$("#cmObs").value,svs:m._svs}}
   function prev(){var o=cur();if(!o.ds.length)o.ds=[e.date];comCanvas(comDados(o),.9).then(function(cv){$("#cmPrev").src=cv.toDataURL("image/png")})}
-  m._svs=e.svs||[e.s];$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
+  m._svs=svsOf(e);$("#cmNome").value=e.cli;$("#cmPub").value=/condom|cond\.|edif|resid/i.test(e.cli)||!/ltda|s\/a|eireli|\bme\b|empresa/i.test(e.cli)?"cond":"col";
   /* serviço cadastrado em vários dias: todos os dias do agendamento vão no mesmo comunicado */
   var grp=e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e];if(!grp.length)grp=[e];
   $("#cmDias").innerHTML=grp.sort(function(a,b){return a.date<b.date?-1:1}).map(function(x){return diaRow(x.date)}).join("");$("#cmHora").value=String(grp[0].h);

@@ -412,7 +412,7 @@ VIEWS.dash=function(v){
 function stPill(s){var m={"Concluída":"ok","Cancelada":"er","Aguardando assinatura":"al","Agendada":"in","Em execução":"in"};return '<span class="pill '+(m[s]||"ne")+'">'+s+'</span>'}
 
 /* ===== AGENDA ===== */
-function svShort(e){return (e.svs||[e.s]).map(function(s){return SERV[s]?SERV[s].sh:s}).join(" + ")}
+function svShort(e){return svsOf(e).map(function(s){return SERV[s]?SERV[s].sh:s}).join(" + ")||"Sem serviço"}
 function garTxt(n){return n?(n===1?"1 mês":n+" meses"):"Sem garantia"}
 function addMonths(ds,n){var p=ds.split("-"),d=new Date(+p[0],+p[1]-1+n,+p[2]);return ymd(d)}
 function hh(h){return String(h).padStart(2,"0")+":00"}
@@ -430,7 +430,7 @@ VIEWS.agenda=function(v){
    +'<div class="acts"><button class="ghost" type="button" data-wpx>Fechar</button><button class="cta rq" type="button" id="wpCopy">'+ic("doc",13)+' Copiar</button></div></div></div>'
    +'<div class="modal" id="evModal" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="evT"><h3 id="evT">Novo agendamento</h3><div class="form">'
    +'<div class="fld full"><label for="evCli">Cliente</label>'+cliPick("evCli")+'</div>'
-   +'<div class="fld full"><span class="lbl">Serviços <small>· marque um ou mais</small></span><div class="svpick">'+Object.keys(SERV).map(function(s,i){return '<label><input type="checkbox" value="'+s+'"><i style="background:'+SERV[s].c+'"></i><span>'+s+'</span></label>'}).join("")+'</div></div>'
+   +'<div class="fld full"><span class="lbl">Serviços <small>· opcional, marque um ou mais</small></span><div class="svpick">'+Object.keys(SERV).filter(function(s){return !SERV[s].ant}).map(function(s,i){return '<label><input type="checkbox" value="'+s+'"><i style="background:'+SERV[s].c+'"></i><span>'+s+'</span></label>'}).join("")+'</div></div>'
    +'<div class="fld full"><span class="lbl">Datas e horários</span><div id="evDates"></div><button class="add-d" type="button" id="evAddD">'+ic("plus",12)+' Adicionar outra data</button></div>'
    +'<div class="fld full"><span class="lbl">Garantia</span><div class="seg gar" role="group" aria-label="Garantia">'+GAR_OPC.map(function(g){return '<button type="button" data-gar="'+g[0]+'">'+g[1]+'</button>'}).join("")+'</div></div>'
    +'<div class="fld"><label for="evDur">Duração prevista</label><select id="evDur"><option value="1">1 hora</option><option value="2" selected>2 horas</option><option value="3">3 horas</option><option value="4">4 horas</option><option value="8">Dia inteiro</option></select></div>'
@@ -485,7 +485,7 @@ VIEWS.agenda=function(v){
     var last=grp[grp.length-1].date;
     $("#sdCard").innerHTML='<div class="evc"><div class="ch"><button class="ghost" type="button" data-back>‹ '+DIA3[dt.getDay()]+", "+p[2]+"/"+p[1]+'</button><button class="dots" type="button" data-back aria-label="Fechar">×</button></div>'
      +'<div class="evh" style="--c:'+svCor(e.s)+'"><small>'+DIA3[dt.getDay()]+', '+dmy(e.date)+' · '+hh(e.h)+' às '+hh(Math.min(e.h+e.dur,19))+'</small><b>'+e.cli+'</b><span>'+(c?c.end:"Cliente sem cadastro completo")+'</span></div>'
-     +'<div class="sub">Serviços</div><div class="svl">'+(e.svs||[e.s]).map(function(s){return '<span style="--c:'+svCor(s)+'">'+s+'</span>'}).join("")+'</div>'
+     +'<div class="sub">Serviços</div><div class="svl">'+(svsOf(e).map(function(s){return '<span style="--c:'+svCor(s)+'">'+s+'</span>'}).join("")||'<span class="mut">Nenhum serviço informado</span>')+'</div>'
      +'<div class="kv2"><div><small>Garantia</small><span>'+garTxt(e.gar)+(e.gar?'<em>até '+dmy(addMonths(last,e.gar))+'</em>':'')+'</span></div><div><small>Duração</small><span>'+e.dur+(e.dur===1?' hora':' horas')+'</span></div>'
      +(c?'<div><small>Contato</small><span>'+c.contato+'</span></div><div><small>Telefone</small><span>'+c.tel+'</span></div>':'')+'</div>'
      +(grp.length>1?'<div class="sub">Datas deste agendamento</div><ul class="dlist">'+grp.map(function(x){return '<li'+(x.id===e.id?' class="on"':'')+' data-ev="'+x.id+'">'+DIA3[new Date(x.date+"T12:00").getDay()]+', '+dmy(x.date)+' · '+hh(x.h)+'</li>'}).join("")+'</ul>':'')
@@ -510,14 +510,14 @@ VIEWS.agenda=function(v){
     var k=$("#wpD").value,dt=new Date(k+"T12:00"),am=ymd(addDays(TODAY,1)),evs=evOn(k);
     var dia=k===am?"amanhã":DIA_EXT[dt.getDay()]+", "+dmy(k).slice(0,5);
     var t="*"+$("#wpS").value+", horários de "+dia+"*\n\n";
-    t+=evs.length?evs.map(function(e,i){return "*Serviço "+(i+1)+"*\n*Local:* "+e.cli+"\n*Serviço:* "+svJoin(e.svs||[e.s])+"\n*Horário:* "+hh(e.h)+"\n*Técnicos:* \n*OBS:* "+(e.obs||"")}).join("\n\n"):"Sem serviços agendados para este dia.";
+    t+=evs.length?evs.map(function(e,i){return "*Serviço "+(i+1)+"*\n*Local:* "+e.cli+"\n*Serviço:* "+svJoin(svsOf(e))+"\n*Horário:* "+hh(e.h)+"\n*Técnicos:* \n*OBS:* "+(e.obs||"")}).join("\n\n"):"Sem serviços agendados para este dia.";
     $("#wpTxt").value=t.replace(/[ ]+$/gm,function(m){return m}) ;
   }
   v.addEventListener("change",function(e){if(e.target.id==="wpD"||e.target.id==="wpS")wpFill()});
   /* busca de agendamentos pelo nome do cliente (ou serviço): próximos primeiro, depois os passados */
   function agBusca(){
     var q=norm($("#agQ").value.trim()),box=$("#agRes");if(!q){box.hidden=true;box.innerHTML="";return}
-    var l=EVENTS.filter(function(e){return norm(e.cli+" "+(e.svs||[e.s]).join(" ")).indexOf(q)>=0}),
+    var l=EVENTS.filter(function(e){return norm(e.cli+" "+svsOf(e).join(" ")).indexOf(q)>=0}),
       fut=l.filter(function(e){return e.date>=TD}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),
       pas=l.filter(function(e){return e.date<TD}).sort(function(a,b){return a.date>b.date?-1:a.date<b.date?1:a.h-b.h});
     function li(e){var dt=new Date(e.date+"T12:00");return '<li data-agev="'+e.id+'" tabindex="0"><span class="tm">'+dmy(e.date)+'<small>'+DIA3[dt.getDay()]+' · '+hh(e.h)+'</small></span><span class="bar-t" style="background:'+svCor(e.s)+'"></span><span class="grow"><b>'+esc(e.cli)+'</b><small>'+svShort(e)+'</small></span></li>'}
@@ -531,7 +531,7 @@ VIEWS.agenda=function(v){
   function grpOf(e){return e.grp?EVENTS.filter(function(x){return x.grp===e.grp}):[e]}
   /* edição: mesma janela do novo agendamento, já preenchida com todas as datas do agendamento */
   function openEdit(id){var e=EVENTS.find(function(x){return x.id===id});if(!e)return;modo(id);
-    var g=grpOf(e).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),svs=e.svs||[e.s];
+    var g=grpOf(e).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.h-b.h}),svs=svsOf(e).map(function(s){return SERV_ANT[s]||s});
     $("#evCli").value=e.cli;$$(".svpick input",v).forEach(function(x){x.checked=svs.indexOf(x.value)>=0});
     $("#evDates").innerHTML=g.map(function(x){return dateRow(x.date,x.h)}).join("");$("#evObs").value=e.obs||"";
     var du=$("#evDur");du.value=String(e.dur);if(du.value!==String(e.dur)){du.insertAdjacentHTML("beforeend",'<option value="'+e.dur+'">'+e.dur+' horas</option>');du.value=String(e.dur)}
@@ -555,7 +555,7 @@ VIEWS.agenda=function(v){
     var day=t.closest("[data-day]");if(day){if(e.detail===2||day.classList.contains("hd")){var p=day.dataset.day.split("-");st.d=new Date(+p[0],+p[1]-1,+p[2]);st.view="dia";st.sel=day.dataset.day;st.ev=null;render()}else side(day.dataset.day);return}
     var ym=t.closest(".ym");if(ym){st.d=new Date(st.d.getFullYear(),+ym.dataset.m,1);st.view="mes";render();return}
     if(t.closest("[data-edit]")){openEdit(st.ev);return}
-    if(t.closest("[data-com]")){var evc=EVENTS.find(function(x){return x.id===st.ev});if(evc)openComunicado(evc);return}
+    if(t.closest("[data-com]")){var evc=EVENTS.find(function(x){return x.id===st.ev});if(evc){if(!svsOf(evc).length){toast("Marque pelo menos um serviço no agendamento para gerar o comunicado.");return}openComunicado(evc)}return}
     if(t.closest("#cNew")){openNew();return}
     if(t.closest("#cWpp")){$("#wpD").value=amanha();var hr=new Date().getHours();$("#wpS").value=hr<12?"Bom dia":hr<18?"Boa tarde":"Boa noite";wpFill();$("#wpModal").hidden=false;return}
     if(t.closest("[data-wpx]")||t===$("#wpModal")){$("#wpModal").hidden=true;return}
@@ -569,19 +569,18 @@ VIEWS.agenda=function(v){
     if(t.closest("#evSave")){
       var cli=$("#evCli").value.trim(),svs=$$(".svpick input:checked",v).map(function(x){return x.value}),ds=$$("#evDates .drow",v).map(function(r){return {d:$("input",r).value,h:+$("select",r).value}}).filter(function(x){return x.d});
       if(!cli){toast("Informe o cliente.");$("#evCli").focus();return}
-      if(!svs.length){toast("Marque pelo menos um serviço.");return}
       if(!ds.length){toast("Escolha pelo menos uma data.");return}
       ds.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:a.h-b.h});
       var dur=+$("#evDur").value,obs=$("#evObs").value.trim(),first=null,ed=st.edit&&EVENTS.find(function(x){return x.id===st.edit});
       if(ed){
         /* reaproveita os registros que já existiam (mesmo código no banco) e só cria ou apaga as datas que mudaram de quantidade */
         var old=grpOf(ed).sort(function(a,b){return a.id===ed.id?-1:b.id===ed.id?1:a.date<b.date?-1:1}),grp=ed.grp||("g"+Date.now()),stamp=Date.now().toString(36);
-        ds.forEach(function(x,i){var o=old[i];if(!o){o={id:grp+"-"+stamp+i};EVENTS.push(o)}o.grp=grp;o.date=x.d;o.h=x.h;o.dur=dur;o.s=svs[0];o.svs=svs;o.cli=cli;o.gar=st.gar;o.obs=obs;if(!first||x.d<first.date)first=o});
+        ds.forEach(function(x,i){var o=old[i];if(!o){o={id:grp+"-"+stamp+i};EVENTS.push(o)}o.grp=grp;o.date=x.d;o.h=x.h;o.dur=dur;o.s=svs[0]||"";o.svs=svs;o.cli=cli;o.gar=st.gar;o.obs=obs;if(!first||x.d<first.date)first=o});
         old.slice(ds.length).forEach(function(o){EVENTS.splice(EVENTS.indexOf(o),1)});
         first=old[0]&&EVENTS.indexOf(old[0])>=0?old[0]:first;
       }else{
         var grp="g"+Date.now();
-        ds.forEach(function(x,i){var ne={id:grp+"-"+i,grp:grp,date:x.d,h:x.h,dur:dur,s:svs[0],svs:svs,cli:cli,gar:st.gar,obs:obs};EVENTS.push(ne);if(!first)first=ne});
+        ds.forEach(function(x,i){var ne={id:grp+"-"+i,grp:grp,date:x.d,h:x.h,dur:dur,s:svs[0]||"",svs:svs,cli:cli,gar:st.gar,obs:obs};EVENTS.push(ne);if(!first)first=ne});
       }
       $("#evModal").hidden=true;modo(null);var p2=first.date.split("-");st.d=new Date(+p2[0],+p2[1]-1,+p2[2]);st.ev=first.id;render();
       toast(ed?"Agendamento de "+cli+" atualizado.":ds.length>1?ds.length+" datas agendadas para "+cli+".":"Agendado para "+dmy(first.date)+".");}
